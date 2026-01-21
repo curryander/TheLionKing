@@ -1,0 +1,287 @@
+openapi: 3.0.0
+info:
+  title: IBMHackaton-TheLionKing
+  description: API zur Verarbeitung von PDF-Dokumenten und Ergebnisabfrage.
+  version: 1.0.1
+servers:
+  - url: http://api.example.com/v1
+    description: Default server
+
+paths:
+  /start:
+    post:
+      summary: Startet die Verarbeitung eines PDF-Dokuments
+      description: Nimmt ein PDF entgegen und startet den Verarbeitungsprozess.
+      operationId: startProcess
+      requestBody:
+        required: true
+        content:
+          application/pdf:
+            schema:
+              type: string
+              format: binary
+            examples:
+              samplePdf:
+                summary: Kleines Beispiel-PDF (Base64, gekürzt)
+                description: Base64-kodierter PDF-Inhalt. In echten Requests bitte vollständige Bytes senden.
+                value: JVBERi0xLjQKJcKlwrHDqwoxIDAgb2JqCjw8IC9UeXBlIC9DYXRhbG9nID4+CmVuZG9iagoyIDAgb2JqCjw8IC9UeXBlIC9QYWdlIC9Db250ZW50cyAzIDAgUiA+PgplbmRvYmoKMyAwIG9iago8PCAvTGVuZ3RoIDQyID4+CnN0cmVhbQpBTG8gd2VsdCwgaGllciBpcyBlaW4gUHJvYmUtUEZELi4uCmVuZHN0cmVhbQplbmRvYmoKeHJlZgowIDQKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMTAwIDAwMDAwIG4gCjAwMDAwMDAyMDAgMDAwMDAgbiAKMDAwMDAwMDMwMCAwMDAwMCBuIAp0cmFpbGVyCjw8IC9Sb290IDEgMCBSID4+CnN0YXJ0eHJlZgozNjQKJSVFT0YK
+      responses:
+        "202":
+          description: Prozess erfolgreich gestartet. Eine ID wird zur Ergebnisabfrage zurückgegeben.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StartResponse"
+              examples:
+                started:
+                  $ref: "#/components/examples/StartResponseExample"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+        "500":
+          description: Interner Serverfehler.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /result/{id}:
+    get:
+      summary: Liefert den Status bzw. das Ergebnis eines gestarteten Prozesses
+      description: Gibt je nach Status entweder Fortschritt (202) oder das Ergebnis (200) zurück.
+      operationId: getResult
+      parameters:
+        - $ref: "#/components/parameters/ProcessId"
+      responses:
+        "200":
+          description: Ergebnis ist verfügbar.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResultResponse"
+              examples:
+                successExample:
+                  $ref: "#/components/examples/ResultResponseExample"
+        "202":
+          description: Ergebnis noch nicht fertig. Fortschritt in Prozent.
+          headers:
+            Retry-After:
+              description: Empfohlene Sekunden bis zur nächsten Abfrage.
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProcessProgress"
+              examples:
+                inProgress:
+                  $ref: "#/components/examples/ProcessProgressExample"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+        "500":
+          description: Interner Serverfehler.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+components:
+  parameters:
+    ProcessId:
+      name: id
+      in: path
+      required: true
+      description: Die ID des gestarteten Prozesses.
+      schema:
+        type: string
+        example: 4f39e7b2-38bf-4f98-8d54-9fb8e6afd4ea
+
+  schemas:
+    StartResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+          description: ID des gestarteten Prozesses.
+          example: 4f39e7b2-38bf-4f98-8d54-9fb8e6afd4ea
+      required: [id]
+
+    ProcessProgress:
+      type: object
+      properties:
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Fortschritt in Prozent.
+          example: 65
+      required: [progress]
+
+    SubDocument:
+      type: object
+      description: Extrahiertes/klassifiziertes Teil-Dokument mit inline PDF.
+      properties:
+        documentData:
+          type: string
+          format: byte
+          description: Base64-kodierte PDF-Daten.
+          example: JVBERi0xLjQKJcKlwrHDqwo...ZW5kc3RyZWFtCiUlRU9G
+        category:
+          type: string
+          description: Klassifikation des Dokuments.
+          enum: [AUSWEIS, GEBURTSURKUNDE, STERBEURKUNDE, ZEUGNIS, STEUERBESCHEID, KRANKENKASSENBESCHEINIGUNG, SONSTIGE]
+          example: AUSWEIS
+        firstName:
+          type: string
+          description: Erkannter Vorname in diesem Dokument.
+          example: Maria
+        surname:
+          type: string
+          description: Erkannter Nachname in diesem Dokument.
+          example: Schneider
+        vsnr:
+          type: string
+          description: Erkannte Versicherungsnummer in diesem Dokument.
+          example: "12 345678 X 123"
+        birthDate:
+          type: string
+          format: date
+          description: Erkannter Geburtstag (YYYY-MM-DD).
+          example: "1990-05-20"
+        summary:
+          type: string
+          description: Zusammenfassung des Dokuments.
+          example: Antrag auf Feststellung von Leistungen nach SGB VI, inkl. Anlagenverzeichnis.
+        additionalFields:
+          type: object
+          description: an json with ai detected headers and values
+          additionalProperties: true
+          example:
+            kundennummer: "K-8837421"
+            aktenzeichen: "AZ-2024-17"
+            eingangsdatum: "2024-11-03"
+      required: [documentData, category]
+
+    ResultResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Prozess-ID.
+          example: 4f39e7b2-38bf-4f98-8d54-9fb8e6afd4ea
+        firstName:
+          type: string
+          example: Maria
+        surname:
+          type: string
+          example: Schneider
+        summary:
+          type: string
+          example: Zusammenfassung über alle erkannten Dokumente und extrahierten Kernfelder.
+        vsnr:
+          type: string
+          example: "12 345678 X 123"
+        birthDate:
+          type: string
+          format: date
+          example: "1990-05-20"
+        documents:
+          type: array
+          description: Liste erkannter Subdokumente (inklusive Base64-PDF).
+          items:
+            $ref: "#/components/schemas/SubDocument"
+      required: [id, documents]
+
+    ApiError:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Fehlercode
+          enum: [ BAD_REQUEST, NOT_FOUND, SERVER_ERROR ]
+          example: BAD_REQUEST
+        message:
+          type: string
+          description: Menschlich lesbare Beschreibung.
+          example: Anfrageparameter fehlen oder sind ungültig.
+      required: [ code, message ]
+
+  responses:
+    BadRequest:
+      description: Anfrage ist fehlerhaft.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
+          examples:
+            badRequestExample:
+              $ref: "#/components/examples/ApiErrorBadRequestExample"
+    NotFound:
+      description: Ressource wurde nicht gefunden.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
+          examples:
+            notFoundExample:
+              $ref: "#/components/examples/ApiErrorNotFoundExample"
+
+  examples:
+    StartResponseExample:
+      summary: Prozess gestartet
+      value:
+        id: 4f39e7b2-38bf-4f98-8d54-9fb8e6afd4ea
+
+    ProcessProgressExample:
+      summary: Verarbeitung läuft
+      value:
+        progress: 65
+
+    ResultResponseExample:
+      summary: Vollständiges Ergebnis
+      value:
+        id: 4f39e7b2-38bf-4f98-8d54-9fb8e6afd4ea
+        firstName: Maria
+        surname: Schneider
+        summary: "Dokumente klassifiziert: 2. Kerndaten extrahiert: Vorname, Nachname, VSNR, Geburtsdatum."
+        vsnr: "12 345678 X 123"
+        birthDate: "1990-05-20"
+        documents:
+          - documentData: JVBERi0xLjQKJcKlwrHDqwo...RU9G
+            category: ANTRAG
+            firstName: Maria
+            surname: Schneider
+            vsnr: "12 345678 X 123"
+            birthDate: "1990-05-20"
+            summary: "Erstantrag auf Leistungen."
+            additionalFields:
+              kundennummer: "K-8837421"
+              aktenzeichen: "AZ-2024-17"
+              eingangsdatum: "2024-11-03"
+          - documentData: JVBERi0xLjQKJcKlwrHDqwo...RU9G
+            category: BESCHIED
+            firstName: Maria
+            surname: Schneider
+            vsnr: "12 345678 X 123"
+            birthDate: "1990-05-20"
+            summary: "Bewilligungsbescheid mit Fristen."
+            additionalFields:
+              bescheiddatum: "2024-11-12"
+              rechtsbehelfsbelehrung: true
+
+    ApiErrorBadRequestExample:
+      summary: Ungültige Anfrage
+      value:
+        code: BAD_REQUEST
+        message: "Fehlender oder ungültiger Parameter: id"
+
+    ApiErrorNotFoundExample:
+      summary: Prozess nicht gefunden
+      value:
+        code: NOT_FOUND
+        message: "Kein Prozess mit ID 4f39e7b2-38bf-4f98-8d54-9fb8e6afd4ea gefunden."
