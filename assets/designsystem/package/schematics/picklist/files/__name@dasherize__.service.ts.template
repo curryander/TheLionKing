@@ -1,0 +1,49 @@
+import { Injectable } from '@angular/core';
+import { of } from 'rxjs';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class <%= classify(name) %>Service {
+  private dummyData: Array<{ id: number, name: string, address: string }> = [
+    {
+      id: 1,
+      name: "Raffarty Hamblen",
+      address: "60388 Lakeland Avenue",
+    },
+    {
+      id: 2,
+      name: "Petric Eaken",
+      address: "76011 Crest Line Way",
+    },
+    {
+      id: 3,
+      name: "Nicolai Rikki",
+      address: "9 Northland Plaza",
+    },
+    {
+      id: 4,
+      name: "Rikki Eaken",
+      address: "5919 Grasskamp Road",
+    },
+    {
+      id: 5,
+      name: "Phillis Goodbarr",
+      address: "099 Mandrake Court",
+    },
+    {
+      id: 6,
+      name: "Barney Petric",
+      address: "680 Ridgeview Junction",
+    },
+    {
+      id: 7,
+      name: "Koralle Zamudio",
+      address: "79515 Old Gate Terrace",
+    },
+  ];
+
+  getItems() {
+    return of(this.dummyData);
+  }
+}

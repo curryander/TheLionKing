@@ -1,0 +1,109 @@
+import { Component, ViewEncapsulation } from '@angular/core';
+import {
+  TableComponent,
+  TableHeadComponent,
+  IconComponent,
+  TooltipComponent,
+  CheckboxComponent,
+} from '@drv-ds/drv-design-system-ng';
+import { FormsModule } from '@angular/forms';
+
+type TableItem = {
+  from: string,
+  subject: string,
+  replied: boolean,
+  attachment: boolean,
+  date: string,
+};
+
+@Component({
+  standalone: true,
+  selector: '<%= selector %>-html-table',
+  encapsulation: ViewEncapsulation.None,
+  templateUrl: './html-table.component.html',
+  imports: [
+    TableComponent,
+    TableHeadComponent,
+    IconComponent,
+    TooltipComponent,
+    CheckboxComponent,
+    FormsModule,
+  ],
+})
+export class HtmlTableComponent {
+  public data: { header: TableHeaderItem[], body: TableItem[] } = {
+    header: [
+      {
+        label: 'Absender',
+        width: {
+          unit: 'em',
+          value: 12,
+        },
+      },
+      {
+        label: 'Betreff',
+        width: {
+          unit: 'em',
+          value: 40,
+        },
+      },
+      {
+        label: 'Anhang',
+        width: {
+          unit: 'em',
+          value: 10,
+        },
+      },
+      {
+        label: 'Datum',
+        width: {
+          unit: 'em',
+          value: 10,
+        },
+      },
+    ],
+    body: [
+      {
+        from: 'Deutsche Rentenversicherung | Baden-Württemberg',
+        subject: `Gelesene Nachricht Antrag auf Lorem, ipsum dolor sit amet consectetur adipisicing elit.
+          Debitis tempora aliquid quia dolorum facere adipisci itaque eum corrupti
+          libero eaque quae expedita et corporis a id necessitatibus in, veritatis autem.`,
+        replied: true,
+        attachment: true,
+        date: '28.12.2020',
+      },
+      {
+        from: 'ZfA',
+        subject: 'Riester-Rente: Informationen zu neuen Prozentsätzen.',
+        replied: false,
+        attachment: false,
+        date: '27.12.2020',
+      },
+    ],
+  };
+  public allCheckBoxIndeterminate = true;
+  public allCheckBoxChecked = false;
+  public selectedRows = [false, false];
+
+  public onSelect() {
+    this.allCheckBoxChecked = false;
+    this.allCheckBoxIndeterminate = false;
+
+    if (this.selectedRows.every(Boolean)) {
+      this.allCheckBoxChecked = true;
+      this.allCheckBoxIndeterminate = false;
+      return;
+    }
+
+    if (this.selectedRows.some(Boolean)) {
+      this.allCheckBoxIndeterminate = true;
+      this.allCheckBoxChecked = false;
+    }
+  }
+
+  public allCheckboxChange(checked: boolean) {
+    this.allCheckBoxChecked = checked;
+    this.allCheckBoxIndeterminate = false;
+    this.selectedRows = this.selectedRows.map(() => checked);
+  }
+}

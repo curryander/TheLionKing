@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/schema",
+  "title": "picklist pattern",
+  "type": "object",
+  "properties": {
+    "selector": {
+      "type": "string",
+      "description": "The selector prefix for the component",
+      "visible": false,
+      "default": "drv"
+    },
+    "project": {
+      "type": "string",
+      "description": "The name of the project.",
+      "alias": "p"
+    },
+    "name": {
+      "type": "string",
+      "description": "The name of the component.",
+      "minLength": 1,
+      "x-prompt": "What name would you like to use for the picklist component page?"
+    },
+    "spec": {
+      "description": "Playwright spec to test the picklist functions",
+      "type": "boolean",
+      "default": false,
+      "x-prompt": {
+        "message": "Would you like to generate a Playwright test for this pattern?"
+      }
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

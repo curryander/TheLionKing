@@ -1,0 +1,182 @@
+import { Component, EventEmitter, Output, ViewEncapsulation } from '@angular/core';
+import {
+  TableComponent,
+  TableHeadComponent,
+  TableExpandRowComponent,
+  TableExpandedRowComponent,
+  ButtonComponent,
+  OverflowmenuComponent,
+  TableHeaderItem,
+  OnSelectChange,
+} from '@drv-ds/drv-design-system-ng';
+import { FormsModule } from '@angular/forms';
+
+type TableItem = {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  address: string;
+  city: string;
+  content: string;
+  buttonLabel: string;
+  selected: boolean;
+  expanded: boolean;
+};
+
+@Component({
+  standalone: true,
+  selector: '<%= selector %>-expandable-table',
+  encapsulation: ViewEncapsulation.None,
+  templateUrl: './expandable-table.component.html',
+  imports: [
+    TableComponent,
+    TableHeadComponent,
+    TableExpandRowComponent,
+    TableExpandedRowComponent,
+    ButtonComponent,
+    OverflowmenuComponent,
+    FormsModule,
+  ],
+})
+export class ExpandableTableComponent {
+  @Output() edit = new EventEmitter();
+
+  public allCheckBoxIndeterminate = false;
+  public allCheckBoxChecked = false;
+  public allExpanded = false;
+  public data: { header: TableHeaderItem[], body: TableItem[] } = {
+    header: [
+      {
+        label: 'ID',
+        width: {
+          unit: 'em',
+          value: 5,
+        },
+      },
+      {
+        label: 'First Name',
+        mainInfo: true,
+      },
+      {
+        label: 'Last Name',
+      },
+      {
+        label: 'Email',
+        noSort: true,
+      },
+      {
+        label: 'Address',
+      },
+      {
+        label: 'City',
+      },
+      {
+        label: 'Edit',
+        labelHidden: true,
+        noSort: true,
+      },
+    ],
+    body: [
+      {
+        id: 1,
+        firstName: 'Raffarty',
+        lastName: 'Bontoft',
+        email: 'rbontoft0@purevolume.com',
+        address: '99623 Pine View Pass',
+        city: 'Russkiy',
+        content: `
+          <h6>Expandable row content</h6>
+          <div>Description here</div>
+        `,
+        buttonLabel: 'Zeile 1 aufklappen',
+        selected: false,
+        expanded: true,
+      },
+      {
+        id: 2,
+        firstName: 'Koralle',
+        lastName: 'Zamudio',
+        email: 'kzamudio1@nytimes.com',
+        address: '79515 Old Gate Terrace',
+        city: 'Chencai',
+        content: `
+          expanded row
+        `,
+        buttonLabel: 'Zeile 2 aufklappen',
+        selected: false,
+        expanded: false,
+      },
+    ],
+  };
+
+  toggleAllExpandableRows(expanded: boolean) {
+    this.data.body = this.data.body.map(row => ({
+      ...row,
+      expanded,
+    }));
+    this.allExpanded = expanded;
+  }
+
+  allCheckboxChange(selected: boolean) {
+    this.data.body = this.data.body.map(row => ({
+      ...row,
+      selected,
+    }));
+  }
+
+  checkboxChange([{ index }]: OnSelectChange): void {
+    this.data.body = this.data.body.map((row, i) => ({
+      ...row,
+      selected: i === index ? !row.selected : row.selected,
+    }));
+
+    this.allCheckBoxChecked = false;
+    this.allCheckBoxIndeterminate = false;
+
+    if (this.data.body.every(({ selected }) => selected)) {
+      this.allCheckBoxChecked = true;
+      this.allCheckBoxIndeterminate = false;
+      return;
+    }
+
+    if (this.data.body.some(({ selected }) => selected)) {
+      this.allCheckBoxIndeterminate = true;
+      this.allCheckBoxChecked = false;
+    }
+  }
+
+  expandChange(value: boolean, row: any) {
+    row.expanded = value;
+    this.allExpanded = this.data.body.every(({ expanded }) => expanded);
+  }
+
+  onEditClick(row: string) {
+    this.edit.emit(row);
+  }
+
+  onSort({ index, order }: { index: number, order: string }) {
+    const isNumber = (n: number) => typeof n === 'number' && !isNaN(n);
+
+    const sorting = (a: any, b: any) => {
+      const cA: any = Object.values(a)[index];
+      const cB: any = Object.values(b)[index];
+
+      if (isNumber(cA) && isNumber(cB)) {
+        return order === 'asc' ? cA - cB : cB - cA;
+      }
+
+      if (cA < cB) {
+        return order === 'asc' ? -1 : 1;
+      }
+
+      if (cA > cB) {
+        return order === 'asc' ? 1 : -1;
+      }
+
+      return 0;
+    };
+
+    this.data.body.sort(sorting);
+  }
+}

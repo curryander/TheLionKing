@@ -1,0 +1,44 @@
+{
+  "$schema": "../../../../node_modules/@angular-devkit/schematics/collection-schema.json",
+  "schematics": {
+    "ng-add": {
+      "description": "Add the library to the project.",
+      "factory": "./ng-add/index#ngAdd"
+    },
+    "config": {
+      "description": "adds default config (public or productive)",
+      "factory": "./config/index#configSchematic",
+      "schema": "./config/schema.json"
+    },
+    "expandable-table": {
+      "description": "creates example component with expandable table",
+      "factory": "./examples/expandable-table/index#expandabletableSchematic",
+      "schema": "./examples/expandable-table/schema.json"
+    },
+    "html-table": {
+      "description": "creates example component with HTML table",
+      "factory": "./examples/html-table/index#htmltableSchematic",
+      "schema": "./examples/html-table/schema.json"
+    },
+    "picklist": {
+      "description": "invokes all components necessary for the picklist pattern",
+      "factory": "./picklist/index#picklistSchematic",
+      "schema": "./picklist/schema.json"
+    },
+    "paginated-table": {
+      "description": "invokes all components necessary for the paginated table pattern",
+      "factory": "./paginated-table/index#paginatedTableSchematic",
+      "schema": "./paginated-table/schema.json"
+    },
+    "form-validation": {
+      "description": "invokes several forms via form builder and demonstrates form validation",
+      "factory": "./form-validation/index#validationSchematic",
+      "schema": "./form-validation/schema.json"
+    },
+    "page-template": {
+      "description": "invokes one of many page templates",
+      "factory": "./page-template/index#pageSchematic",
+      "schema": "./page-template/schema.json"
+    }
+  }
+}

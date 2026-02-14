@@ -1,0 +1,122 @@
+import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
+import {
+  ButtonComponent,
+  OnSelectChange,
+  TableDataBody,
+  TableComponent,
+  ItemlistComponent,
+  ColDirective,
+  RowDirective,
+} from '@drv-ds/drv-design-system-ng';
+import { <%= classify(name) %>Service } from './<%= name %>.service';
+
+interface PicklistItem {
+  checked: boolean;
+  selected: boolean;
+  data: {
+    id: number;
+    name: string;
+    address: string;
+  };
+}
+
+@Component({
+  standalone: true,
+  selector: '<%= selector %>-<%= name %>',
+  templateUrl: './<%= name %>.component.html',
+  imports: [
+    TableComponent,
+    ItemlistComponent,
+    ItemlistItemComponent,
+    ButtonComponent,
+    ColDirective,
+    RowDirective,
+    FormsModule,
+    ReactiveFormsModule,
+  ],
+})
+export class <%= classify(name) %>Component implements OnInit, OnDestroy {
+  @ViewChild(TableComponent) table!: TableComponent;
+
+  public tableHeader: { label: string }[] = [
+    { label: 'ID' },
+    { label: 'Name' },
+    { label: 'Address' },
+  ];
+
+  private destroyed$ = new Subject();
+  public selectedRows = [0, 1];
+
+  // All items with state information: checked, selected
+  availableItems: PicklistItem[] = [];
+  // Transformed items into table structure [number, string, string]
+  templateData: Array<Array<string | number>> = [];
+
+  constructor(private picklistService: <%= classify(name) %>Service ) {}
+
+  ngOnInit(): void {
+    this.picklistService.getItems()
+      .pipe(takeUntil(this.destroyed$))
+      .subscribe(items => {
+        this.availableItems = items.map((item, i) => ({
+            checked: this.selectedRows.includes(i),
+            selected: false,
+            data: {
+              id: item.id,
+              name: item.name,
+              address: item.address,
+            },
+          })
+      );
+      this.templateData = this.mapTemplateItems(this.availableItems);
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.destroyed$.next(true);
+    this.destroyed$.complete();
+  }
+
+  // Mark available item with checked = true
+  checkRow(rows: OnSelectChange) {
+    const checkedRows = rows.map(item => item.row as TableDataBody);
+    const checkedIdsArray: number[] = checkedRows.map(row => row[0] as number);
+
+    this.availableItems.forEach(availableItem => {
+      availableItem.checked = checkedIdsArray.includes(availableItem.data.id);
+    });
+  }
+
+  unassignItem(item: PicklistItem) {
+    const foundItem = this.availableItems.find(
+      availableItem => availableItem.data.id === item.data.id
+    );
+
+    foundItem && (foundItem.selected = false);
+    this.templateData = this.mapTemplateItems(this.availableItems);
+  }
+
+  assignSelected() {
+    this.availableItems.forEach(availableItem => {
+      if (availableItem.checked) {
+        availableItem.selected = true;
+        availableItem.checked = false;
+      }
+    });
+
+    this.templateData = this.mapTemplateItems(this.availableItems);
+  }
+
+  // Converts object structure from service into flat table data structure
+  mapTemplateItems(items: PicklistItem[]): Array<Array<string | number>> {
+    return items
+      .filter(item => !item.selected)
+      .map(({ data: { id, name, address } }) => [id, name, address]);
+  }
+
+  get hasSelectedItems() {
+    return !this.availableItems.find(item => item.checked);
+  }
+}

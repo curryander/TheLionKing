@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/schema",
+  "title": "Page templates",
+  "type": "object",
+  "properties": {
+    "selector": {
+      "type": "string",
+      "description": "The selector prefix for the component",
+      "visible": false,
+      "default": "drv"
+    },
+    "project": {
+      "type": "string",
+      "description": "The name of the project.",
+      "alias": "p"
+    },
+    "name": {
+      "type": "string",
+      "description": "The name of the page.",
+      "minLength": 1,
+      "x-prompt": "What name would you like to use for the page?"
+    },
+    "page": {
+      "description": "A page template for different purposes (content page, start page, etc.)",
+      "type": "string",
+      "default": "content",
+      "enum": [
+        "content",
+        "blank",
+        "start",
+        "app",
+        "application"
+      ],
+      "x-prompt": {
+        "message": "Which template would you like to use for your new page?",
+        "type": "list",
+        "items": [
+          { "value": "content",  "label": "content page - full width for < LG, 80% width for >= LG" },
+          { "value": "blank", "label": "blank page - always full width" },
+          { "value": "start", "label": "start page - two columns 2:1, for primary and secondary content" },
+          { "value": "app", "label": "app page - two columns 1:2, for navigation element and primary content" },
+          { "value": "application", "label": "application - two columns 1:2, for navigation element and primary content (w/ col offset)" }
+        ]
+      }
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

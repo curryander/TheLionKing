@@ -1,0 +1,71 @@
+import { Injectable } from '@angular/core';
+import { Observable, of } from 'rxjs';
+
+export interface DummyItem {
+  id: number;
+  name: string;
+  address: string;
+}
+
+export interface DummyResult {
+  items: DummyItem[];
+  totalItems: number;
+}
+
+@Injectable({
+  providedIn: 'root'
+})
+export class <%= classify(name) %>Service {
+  private dummyData: Array<{ id: number, name: string, address: string }> = [
+    { id: 1, name: "Raffarty Hamblen", address: "60388 Lakeland Avenue" },
+    { id: 2, name: "Petric Eaken", address: "76011 Crest Line Way" },
+    { id: 3, name: "Nicolai Rikki", address: "9 Northland Plaza" },
+    { id: 4, name: "Rikki Eaken", address: "5919 Grasskamp Road" },
+    { id: 5, name: "Phillis Goodbarr", address: "099 Mandrake Court" },
+    { id: 6, name: "Barney Petric", address: "680 Ridgeview Junction" },
+    { id: 7, name: "Koralle Zamudio", address: "79515 Old Gate Terrace" },
+    { id: 8, name: "Jordan Bellamy", address: "1234 Elm Street" },
+    { id: 9, name: "Taylor Monroe", address: "5678 Oak Avenue" },
+    { id: 10, name: "Alex Harper", address: "9101 Pine Lane" },
+    { id: 11, name: "Casey Jordan", address: "2345 Maple Drive" },
+    { id: 12, name: "Morgan Lee", address: "6789 Birch Boulevard" },
+    { id: 13, name: "Jamie Kim", address: "1011 Cedar Court" },
+    { id: 14, name: "Drew Parker", address: "1213 Spruce Road" },
+    { id: 15, name: "Avery Quinn", address: "1415 Willow Way" },
+    { id: 16, name: "Riley Morgan", address: "1617 Redwood Street" },
+    { id: 17, name: "Reese Taylor", address: "1819 Sycamore Avenue" },
+    { id: 18, name: "Peyton Hunter", address: "2021 Cypress Lane" },
+    { id: 19, name: "Dana Casey", address: "2223 Elmwood Drive" },
+    { id: 20, name: "Harper Blake", address: "2425 Poplar Street" },
+    { id: 21, name: "Quinn Avery", address: "2627 Linden Avenue" },
+    { id: 22, name: "Jordan Casey", address: "2829 Magnolia Lane" },
+    { id: 23, name: "Taylor Jordan", address: "3031 Cherry Boulevard" },
+    { id: 24, name: "Alex Casey", address: "3233 Hickory Drive" },
+    { id: 25, name: "Casey Morgan", address: "3435 Aspen Court" },
+    { id: 26, name: "Morgan Jordan", address: "3637 Hemlock Road" },
+    { id: 27, name: "Jamie Taylor", address: "3839 Alder Street" },
+    { id: 28, name: "Drew Lee", address: "4041 Cedarwood Avenue" },
+    { id: 29, name: "Avery Hunter", address: "4243 Beech Lane" },
+    { id: 30, name: "Riley Quinn", address: "4445 Dogwood Drive" },
+    { id: 31, name: "Reese Parker", address: "4647 Elm Tree Court" },
+    { id: 32, name: "Peyton Lee", address: "4849 Maplewood Street" },
+    { id: 33, name: "Dana Quinn", address: "5051 Sycamore Lane" },
+    { id: 34, name: "Harper Taylor", address: "5253 Walnut Drive" },
+    { id: 35, name: "Quinn Jordan", address: "5455 Oakwood Boulevard" },
+    { id: 36, name: "Jordan Harper", address: "5657 Birch Lane" },
+    { id: 37, name: "Taylor Hunter", address: "5859 Spruce Drive" },
+    { id: 38, name: "Alex Morgan", address: "6061 Maple Avenue" },
+    { id: 39, name: "Casey Blake", address: "6263 Pinewood Street" },
+    { id: 40, name: "Morgan Parker", address: "6465 Cedar Tree Court" },
+  ];
+
+  getItems(start?: number, end?: number): Observable<DummyResult> {
+    const totalItems = this.dummyData.length;
+
+    if (typeof start === 'number' && typeof end === 'number') {
+      return of({ items: this.dummyData.slice(start, end), totalItems });
+    } else {
+      return of({ items: this.dummyData, totalItems });
+    }
+  }
+}

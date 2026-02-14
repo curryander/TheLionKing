@@ -1,0 +1,49 @@
+{
+  "name": "@drv-ds/drv-design-system-ng",
+  "version": "7.20.1",
+  "engines": {
+    "node": "^18.19.1 || ^20.11.1 || ^22.0.0"
+  },
+  "peerDependencies": {
+    "@angular/cdk": "^19.x.x",
+    "@angular/common": "^19.x.x"
+  },
+  "dependencies": {
+    "@floating-ui/dom": "^1.7.2",
+    "@fontsource/barlow": "^5.2.6",
+    "@fontsource/ubuntu": "^5.2.6",
+    "@formkit/tempo": "^0.1.2",
+    "@maskito/angular": "^3.10.1",
+    "@maskito/core": "^3.10.1",
+    "@maskito/kit": "^3.10.1",
+    "@schedule-x/calendar": "^2.36.0",
+    "@schedule-x/calendar-controls": "^2.36.0",
+    "@schedule-x/current-time": "^2.36.0",
+    "@schedule-x/events-service": "^2.36.0",
+    "@schedule-x/theme-default": "^2.36.0",
+    "a11y-dialog": "^8.1.4",
+    "aria-hidden": "^1.2.6",
+    "flatpickr": "4.6.13",
+    "keyux": "^0.11.2",
+    "nanoid": "^5.1.5",
+    "ngx-device-detector": "^9.0.0",
+    "scroll-into-view-if-needed": "^3.1.0",
+    "tslib": "^2.3.0"
+  },
+  "ng-add": {
+    "save": "dependencies"
+  },
+  "schematics": "./schematics/collection.json",
+  "module": "fesm2022/drv-ds-drv-design-system-ng.mjs",
+  "typings": "index.d.ts",
+  "exports": {
+    "./package.json": {
+      "default": "./package.json"
+    },
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./fesm2022/drv-ds-drv-design-system-ng.mjs"
+    }
+  },
+  "sideEffects": false
+}

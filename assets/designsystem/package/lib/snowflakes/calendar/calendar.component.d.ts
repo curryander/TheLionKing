@@ -1,0 +1,54 @@
+import { OnInit, SimpleChanges, OnChanges, AfterViewInit, ElementRef, OnDestroy } from '@angular/core';
+import { createCurrentTimePlugin } from '@schedule-x/current-time';
+import { createEventsServicePlugin } from '@schedule-x/events-service';
+import { createCalendarControlsPlugin } from '@schedule-x/calendar-controls';
+import { type CalendarApp, type CalendarEvent } from '@schedule-x/calendar';
+import * as i0 from "@angular/core";
+export type { CalendarEvent };
+export type { DateRange };
+export type DefaultCalendarView = 'month-grid' | 'week' | 'day';
+interface DateRange {
+    start: string;
+    end: string;
+}
+export declare class CalendarComponent implements OnInit, OnChanges, AfterViewInit, OnDestroy {
+    private deviceService;
+    readonly events: import("@angular/core").InputSignal<CalendarEvent[]>;
+    readonly calendarName: import("@angular/core").InputSignal<string>;
+    readonly dayStartsAt: import("@angular/core").InputSignal<string>;
+    readonly dayEndsAt: import("@angular/core").InputSignal<string>;
+    readonly defaultView: import("@angular/core").InputSignal<DefaultCalendarView>;
+    readonly minDate: import("@angular/core").InputSignal<string>;
+    readonly maxDate: import("@angular/core").InputSignal<string>;
+    readonly hasWeekendStyled: import("@angular/core").InputSignalWithTransform<boolean, unknown>;
+    readonly eventClicked: import("@angular/core").OutputEmitterRef<CalendarEvent>;
+    readonly rangeUpdated: import("@angular/core").OutputEmitterRef<DateRange>;
+    readonly container: import("@angular/core").Signal<ElementRef<any>>;
+    protected locale: string;
+    protected calendarApp: CalendarApp;
+    protected activeView: number;
+    protected controls: ReturnType<typeof createCalendarControlsPlugin>;
+    protected eventsService: ReturnType<typeof createEventsServicePlugin>;
+    protected currentTime: ReturnType<typeof createCurrentTimePlugin>;
+    protected activeDate: string;
+    protected calendarTitle: string;
+    private pluginDateFormat;
+    private titleFormat;
+    private dateFormat;
+    private calendarConfig;
+    constructor();
+    protected get monthView(): string;
+    ngOnInit(): void;
+    ngAfterViewInit(): void;
+    ngOnChanges(changes: SimpleChanges): void;
+    ngOnDestroy(): void;
+    protected onViewChange(index: number): void;
+    protected jumpToToday(): void;
+    protected onDateChange(): void;
+    protected onRender(): void;
+    protected onRangeUpdate(range: DateRange): void;
+    protected navigate(direction?: number): void;
+    private onEventClickHandler;
+    static ɵfac: i0.ɵɵFactoryDeclaration<CalendarComponent, never>;
+    static ɵcmp: i0.ɵɵComponentDeclaration<CalendarComponent, "drv-calendar", never, { "events": { "alias": "events"; "required": false; "isSignal": true; }; "calendarName": { "alias": "calendarName"; "required": false; "isSignal": true; }; "dayStartsAt": { "alias": "dayStartsAt"; "required": false; "isSignal": true; }; "dayEndsAt": { "alias": "dayEndsAt"; "required": false; "isSignal": true; }; "defaultView": { "alias": "defaultView"; "required": false; "isSignal": true; }; "minDate": { "alias": "minDate"; "required": false; "isSignal": true; }; "maxDate": { "alias": "maxDate"; "required": false; "isSignal": true; }; "hasWeekendStyled": { "alias": "hasWeekendStyled"; "required": false; "isSignal": true; }; }, { "eventClicked": "eventClicked"; "rangeUpdated": "rangeUpdated"; }, never, never, true, never>;
+}

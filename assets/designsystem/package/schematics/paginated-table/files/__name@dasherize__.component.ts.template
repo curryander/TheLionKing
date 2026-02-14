@@ -1,0 +1,69 @@
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { Subject, switchMap, takeUntil } from 'rxjs';
+import { TableComponent, PaginationComponent, ColDirective, RowDirective } from '@drv-ds/drv-design-system-ng';
+import { DummyResult, <%= classify(name) %>Service } from './<%= name %>.service';
+
+@Component({
+  standalone: true,
+  selector: '<%= selector %>-<%= name %>',
+  templateUrl: './<%= name %>.component.html',
+  imports: [
+    TableComponent,
+    ColDirective,
+    RowDirective,
+    PaginationComponent,
+    FormsModule,
+    ReactiveFormsModule,
+  ],
+})
+export class <%= classify(name) %>Component implements OnInit, OnDestroy {
+  public tableHeader: { label: string }[] = [
+    { label: 'ID' },
+    { label: 'Name' },
+    { label: 'Address' },
+  ];
+
+  public paginatedItems: Array<Array<string | number>> = [];
+  public currentPage: number = 1;
+  public itemsPerPage = 7;
+  public totalItems = 0;
+  public totalPages = 0;
+
+  private destroyed$ = new Subject();
+  private pageSubject$ = new Subject<number>();
+
+  constructor(private tableDataService: <%= classify(name) %>Service ) {}
+
+  ngOnInit(): void {
+    this.pageSubject$
+      .pipe(
+        switchMap((page) => {
+          const pageIdx = page - 1;
+          const start = pageIdx * this.itemsPerPage;
+          const end = start + this.itemsPerPage;
+
+          return this.tableDataService.getItems(start, end);
+        }),
+        takeUntil(this.destroyed$)
+      )
+      .subscribe((result: DummyResult) => {
+        this.paginatedItems = result.items.map(item => [item.id, item.name, item.address]);
+        this.totalItems = result.totalItems;
+        this.totalPages = Math.ceil(result.totalItems / this.itemsPerPage)
+    });
+
+    this.pageSubject$.next(this.currentPage);
+  }
+
+  ngOnDestroy(): void {
+    this.destroyed$.next(true);
+    this.destroyed$.complete();
+  }
+
+  onSelectHandler(page: number) {
+    this.currentPage = page;
+
+    this.pageSubject$.next(this.currentPage);
+  }
+}

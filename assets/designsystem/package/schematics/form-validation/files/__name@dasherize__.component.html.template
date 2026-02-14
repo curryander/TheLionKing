@@ -1,0 +1,134 @@
+<form [formGroup]="form" (ngSubmit)="onSubmit($event)" drv-form-auto-focus [formAutoFocusConfig]="autoFocusConfig">
+<% if (hasFormerrors === true) { %>
+  <div>
+    <!--
+      In order to allow anchor scrolling, enable it in the app-routing.module
+
+      @NgModule({
+        imports: [RouterModule.forRoot(routes, { anchorScrolling: 'enabled' }
+      )],
+    -->
+    <drv-formerrors
+      errorHeadline="Einige Angaben sind unvollständig oder fehlerhaft:"
+      hintHeadline="Es gibt einen Hinweis:"
+      [hasErrors]="invalidOnSubmit && form.status !== 'VALID'"
+      [hasHints]="form.value['dropdownControl']?.[0]?.value === '2'"
+      [errors]="invalidOnSubmit ? [
+        form.controls['radioControl'].errors?.['required'] && {
+          text: 'Geschlecht: Feld ist ein Pflichfeld.', id: 'option1'
+        },
+        form.controls['dropdownControl'].errors?.['required'] && {
+          text: 'Familienstand: Feld ist ein Pflichfeld.', id: 'drv-dropdown-btn_dropdown'
+        },
+        form.controls['textinputControl'].errors?.['required'] && {
+          text: 'IBAN: Feld erforderlich.', id: 'textinput'
+        }, form.controls['textinputControl'].errors?.['minlength'] && {
+          text: 'IBAN: Feld muss mindestens 22 Zeichen lang sein.', id: 'textinput'
+        },
+      ] : []"
+      [hints]="[{
+        text: 'Wiederheirat schließt Anspruch auf Erziehungsrente aus.', id: 'drv-dropdown-btn_dropdown'
+      }]"
+    />
+  </div>
+<% } %>
+
+<% if (hasInputgroupRadio === true) { %>
+  <!-- INPUTGROUP RADIO -->
+  <drv-inputgroup
+    grouplabel="Geschlecht wählen"
+    name="radioControl"
+    layout="inline"
+    [required]="true"
+    formControlName="radioControl"
+    [hasError]="!!(
+      form.controls['radioControl'].touched && form.controls['radioControl'].errors ||
+      invalidOnSubmit && form.controls['radioControl'].errors
+    )"
+    [errorText]="[{ message: 'Geschlecht ist ein Pflichtfeld.' }]"
+  >
+    <drv-radiobutton id="option1" value="0">Frau</drv-radiobutton>
+    <drv-radiobutton id="option2" value="1">Herr</drv-radiobutton>
+    <drv-radiobutton id="option3" value="2">Divers</drv-radiobutton>
+  </drv-inputgroup>
+<% } %>
+
+<% if (hasDropdown === true) { %>
+  <!-- DROPDOWN -->
+  <drv-dropdown
+    id="dropdownControl"
+    name="dropdownSimple"
+    label="Familienstand"
+    formControlName="dropdownControl"
+    [required]="true"
+    [hasError]="!!(
+      form.controls['dropdownControl'].touched && form.controls['dropdownControl'].errors ||
+      invalidOnSubmit && form.controls['dropdownControl'].errors
+    )"
+    [hasWarning]="form.value['dropdownControl']?.[0]?.value === '2'"
+    [errorText]="[{ message: 'Familienstand ist ein Pflichtfeld.' }]"
+    [warningText]="[{ message: 'Wiederheirat schließt Anspruch auf Erziehungsrente aus.' }]"
+    [options]="[
+      {
+        label: 'ledig, verwitwert, geschieden',
+        value: '1',
+      },
+      {
+        label: 'verheiratet, in eingetragener Lebenspartnerschaft',
+        value: '2',
+      },
+    ]"
+  >
+  </drv-dropdown>
+<% } %>
+
+<% if (hasDisabledInput === true) { %>
+  <!-- DISABLED INPUT -->
+  <drv-textinput
+    id="disabledControl"
+    name="disabledInput"
+    label="Deaktiviert"
+    formControlName="disabledControl"
+  ></drv-textinput>
+<% } %>
+
+<% if (hasInsuranceNumber === true) { %>
+  <!-- INSURANCE NUMBER -->
+  <drv-insurancenumber
+    id="insuranceNr"
+    name="insuranceNr"
+    [required]="false"
+    [strict]="true"
+    formControlName="insuranceNumberControl"
+    [hasError]="!!(form.controls['insuranceNumberControl'].touched &&
+      form.controls['insuranceNumberControl'].errors)"
+    [errorText]="form.controls['insuranceNumberControl'].errors?.['invalid'] ?
+      [{ message: 'Bitte gültige 12-stellige Versicherungsnummer eingeben.' }] :
+      [{ message: 'Versicherungsnummer ist ein Pflichtfeld.' }]"
+  ></drv-insurancenumber>
+<% } %>
+
+<% if (hasTextinput === true) { %>
+  <!-- TEXTINPUT -->
+  <drv-textinput
+    id="textinput"
+    name="textinput"
+    label="IBAN"
+    [required]="true"
+    [hasError]="!!(form.controls['textinputControl'].touched && form.controls['textinputControl'].errors || invalidOnSubmit && form.controls['textinputControl'].errors)"
+    [toggletipTemplate]="toggletip1"
+    [maskOptions]="textinputMaskOption"
+    formControlName="textinputControl"
+    [errorText]="form.controls['textinputControl'].errors?.['minlength'] ?
+      [{ message: 'IBAN muss mindestens 22 Zeichen lang sein.' }] :
+      [{ message: 'IBAN ist ein Pflichtfeld.' }]"
+  ></drv-textinput>
+
+  <ng-template #toggletip1>
+    IBAN beginnend mit DE, 22 Zeichen, Leerzeichen werden automatisch eingefügt
+  </ng-template>
+<% } %>
+
+  <!-- SUBMIT -->
+  <drv-button [label]="isSubmitted ? 'Abschicken erfolgreich' : 'Formular abschicken'" type="submit" [disabled]="isSubmitted"></drv-button>
+</form>

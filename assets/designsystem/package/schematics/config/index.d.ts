@@ -1,0 +1,10 @@
+import { Rule, Tree } from '@angular-devkit/schematics';
+import { type ThemeSchemaOptions, Theme } from './schema';
+declare const configSchematic: (options: ThemeSchemaOptions) => Rule;
+declare const updateAppWithConfig: (path: string, theme: Theme) => (tree: Tree) => import("@angular-devkit/schematics/src/tree/interface").Tree;
+declare const getConfigString: (theme: Theme) => any;
+declare const getImportString: (theme: Theme) => any;
+declare const addImportStatement: (source: string, importString: string) => string;
+declare const addProviderToModule: (source: string, configString: string) => string;
+declare const addProviderToAppConfig: (source: string, configString: string) => string;
+export { configSchematic, updateAppWithConfig, getConfigString, getImportString, addImportStatement, addProviderToModule, addProviderToAppConfig, };

@@ -1,0 +1,16 @@
+import { InputGroupComponent } from '../components/inputgroup/inputgroup.component';
+import { CheckboxComponent } from '../components/checkbox/checkbox.component';
+import { DatepickerComponent } from '../components/datepicker/datepicker.component';
+import { ComboboxComponent } from '../components/combobox/combobox.component';
+import { DropdownComponent } from '../components/dropdown/dropdown.component';
+import { FilterComponent } from '../components/filter/filter.component';
+import { PasswordComponent } from '../components/password/password.component';
+import { SearchbarComponent } from '../components/searchbar/searchbar.component';
+import { TextareaComponent } from '../components/textarea/textarea.component';
+import { TextinputComponent } from '../components/textinput/textinput.component';
+import { TimePickerComponent } from '../components/timepicker/timepicker.component';
+import { ToggleComponent } from '../components/toggle/toggle.component';
+import { SelectBoxComponent } from '../components/select/select.component';
+import { UploadButtonComponent } from '../components/upload/uploadbutton.component';
+import { UploadFieldComponent } from '../components/upload/uploadfield.component';
+export type FormComponent = InputGroupComponent | CheckboxComponent | DatepickerComponent | ComboboxComponent | DropdownComponent | FilterComponent | PasswordComponent | SearchbarComponent | TextareaComponent | TextinputComponent | TimePickerComponent | ToggleComponent | SelectBoxComponent | UploadButtonComponent | UploadFieldComponent;

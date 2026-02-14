@@ -1,0 +1,75 @@
+{
+  "$schema": "http://json-schema.org/schema",
+  "title": "Form validation pattern with several form components",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "The name of the form validation component.",
+      "minLength": 1,
+      "x-prompt": "What name would you like to use for the component?"
+    },
+    "selector": {
+      "type": "string",
+      "description": "The selector prefix for the component",
+      "visible": false,
+      "default": "drv"
+    },
+    "project": {
+      "type": "string",
+      "description": "The name of the project.",
+      "alias": "p"
+    },
+    "hasInputgroupRadio": {
+      "description": "Invokes inputgroup with radio buttons",
+      "type": "boolean",
+      "default": true,
+      "x-prompt": {
+        "message": "Include an inputgroup with radio buttons?"
+      }
+    },
+    "hasDropdown": {
+      "description": "Invokes dropdown component",
+      "type": "boolean",
+      "default": true,
+      "x-prompt": {
+        "message": "Include a dropdown component?"
+      }
+    },
+    "hasTextinput": {
+      "description": "Invokes textinput component",
+      "type": "boolean",
+      "default": true,
+      "x-prompt": {
+        "message": "Include a textinput component?"
+      }
+    },
+    "hasInsuranceNumber": {
+      "description": "Invokes insurance number component",
+      "type": "boolean",
+      "default": true,
+      "x-prompt": {
+        "message": "Include insurance number component?"
+      }
+    },
+    "hasDisabledInput": {
+      "description": "Invokes disabled textinput component",
+      "type": "boolean",
+      "default": true,
+      "x-prompt": {
+        "message": "Include a disabled input (textinput)?"
+      }
+    },
+    "hasFormerrors": {
+      "description": "Invokes formerrors component",
+      "type": "boolean",
+      "default": false,
+      "x-prompt": {
+        "message": "Include formerrors component for error summary?"
+      }
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

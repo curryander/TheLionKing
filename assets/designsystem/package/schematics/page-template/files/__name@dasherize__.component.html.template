@@ -1,0 +1,254 @@
+<div class="drv-page">
+  <div drv-grid>
+    <div drv-row>
+      <div drv-col>
+        <drv-button
+          cssClass="drv-skiplink"
+          type="anchor"
+          label="Zum Seiteninhalt"
+          kind="secondary"
+          href="#main"
+          fullSizeOption="full"
+          iconType="arrow-down"
+        ></drv-button>
+        <drv-button
+          cssClass="drv-skiplink"
+          type="anchor"
+          label="Zum Ende der Seite"
+          kind="secondary"
+          href="#footer"
+          fullSizeOption="full"
+          iconType="arrow-down"
+        ></drv-button>
+      </div>
+    </div>
+  </div>
+
+  <drv-notification
+    type="toast"
+    notificationId="globalNotifications"
+    closeButtonLabel="Hinweis verbergen"
+  ></drv-notification>
+
+  <drv-loading loadingId="loading_id" accessibleText="Wird geladen ..."></drv-loading>
+
+<% if (page !== 'application') { %>
+  <drv-header
+    [isLoggedIn]="true"
+    loginPrefix="Angemeldet als "
+    loginName="Marion Musterfrau"
+    menuButtonLabel="Menü"
+    logoutButtonLabel="Abmelden"
+    [metaItems]="[
+      {
+        text: 'Gebärdensprache',
+        htmltarget: '_blank',
+        htmltitle: '(Es öffnet sich eine neue Seite.)',
+        href: '#',
+        icon: 'sign-language',
+        iconOnly: true
+      },
+      {
+        text: 'Leichte Sprache',
+        htmltarget: '_blank',
+        htmltitle: '(Es öffnet sich eine neue Seite.)',
+        href: '#',
+        icon: 'easy-language',
+        iconOnly: true
+      },
+      {
+        text: 'Hilfe',
+        href: '#',
+        icon: 'question-mark',
+        htmltarget: '_blank',
+        htmltitle: '(Es öffnet sich eine neue Seite.)'
+      }
+    ]"
+    [mainItems]="[]"
+    statusText="Abmeldung in 15 Min"
+    ariaLabelNav="Hauptnavigation"
+    logoLink="/"
+    logoAltText="Deutsche Rentenversicherung – Online Dienste"
+    headerLogoPath="/svg/drv-logo-Online-Dienste-large.svg"
+    headerLogoSmallPath="/svg/drv-logo-Online-Dienste-small.svg"
+    headerLogoPathDark="/svg/drv-logo-Online-Dienste-large--dark.svg"
+    headerLogoSmallPathDark="/svg/drv-logo-Online-Dienste-small--dark.svg"
+    headerLogoTitle="Zurück zur Startseite"
+    [withThemeToggle]="true"
+  ></drv-header>
+<% } else { %>
+  <drv-applicationheader
+    appTitle="Antrag auf Versichertenrente (R0100)"
+    pagetitle="Aktueller Seitentitel"
+    triggerButtonLabel="Navigation anzeigen"
+  >
+    <drv-button
+      iconType="close"
+      kind="secondary"
+      backgroundUI="dark"
+      iconPosition="left"
+      label="Schließen"
+    ></drv-button>
+  </drv-applicationheader>
+<% } %>
+
+<% if (page === 'content') { %>
+  <!-- ------------------- ContentPage page template ------------------- -->
+
+  <drv-stage
+    headline="Content-Template"
+    introText="Introtext (optional)"
+    [breadcrumbItems]="[
+      { title: 'Start', href: './start' },
+      { title: 'Service', href: './kunde' },
+      { title: 'My route path', route: ['my', 'router', 'path'], routeExtras: { fragment: 'top' } },
+      { title: 'Aktuelle Seite', href: '' }
+    ]"
+  ></drv-stage>
+  <drv-contentpage>
+    <!-- HERE IS THE CONTENT -->
+
+    <ng-content>**CONTENT** Lorem ipsum dolor, sit amet consectetur adipisicing elit. Laudantium vero, rem dolores atque quis</ng-content>
+    deleniti fugit fuga possimus, ipsa doloremque repellat blanditiis nostrum obcaecati esse quos unde? Doloribus,
+    ratione numquam. Lorem ipsum dolor, sit amet consectetur adipisicing elit. Laudantium vero, rem dolores atque quis
+    deleniti fugit fuga possimus, ipsa doloremque repellat blanditiis nostrum obcaecati esse quos unde? Doloribus,
+    ratione numquam. Lorem ipsum dolor, sit amet consectetur adipisicing elit. Laudantium vero, rem dolores atque quis
+    deleniti fugit fuga possimus, ipsa doloremque repellat blanditiis nostrum obcaecati esse quos unde? Doloribus,
+    ratione numquam. Lorem ipsum dolor, sit amet consectetur adipisicing elit. Laudantium vero, rem dolores atque quis
+    deleniti fugit fuga possimus, ipsa doloremque repellat blanditiis nostrum obcaecati esse quos unde? Doloribus,
+    ratione numquam. Lorem ipsum dolor, sit amet consectetur adipisicing elit. Laudantium vero, rem dolores atque quis
+    deleniti fugit fuga possimus, ipsa doloremque repellat blanditiis nostrum obcaecati esse quos unde? Doloribus,
+    ratione numquam.
+    <ng-content>**CONTENT**</ng-content>
+    <!-- /content-block -->
+  </drv-contentpage>
+
+<% } else if (page === 'start') { %>
+  <!-- ------------------- StartPage page template ------------------- -->
+
+  <drv-startpage>
+    <ng-container drv-startpage-content>
+      <!-- HERE IS THE CONTENT -->
+
+    <ng-content>**CONTENT**</ng-content>
+      <!-- /content-block -->
+    </ng-container>
+    <ng-container drv-startpage-aside>
+      <!-- HERE IS THE ASIDE CONTENT -->
+      **ASIDE**
+      <!-- /aside-block -->
+    </ng-container>
+  </drv-startpage>
+
+<% } else if (page === 'app') { %>
+  <!-- ------------------- AppPage page template --------------------- -->
+
+  <drv-apppage [fullWidth]="true">
+    <!-- navigation -->
+    <drv-navigation navLabel="Hauptnavigation">
+      <drv-navigation-list></drv-navigation-list>
+      **SIDE-NAVIGATION**
+    </drv-navigation>
+    <!-- /navigation -->
+
+    <!-- HERE IS THE CONTENT -->
+
+    <ng-content>**CONTENT**</ng-content>
+    <!-- /content-block -->
+  </drv-apppage>
+
+<% } else if (page === 'application') { %>
+  <!-- ------------------- ApplicationPage page template ------------- -->
+
+  <drv-apppage>
+    <!-- help button -->
+    <drv-button
+      label="Häufige Fragen"
+      iconType="question-mark"
+      cssClass="drv-help__btn"
+      class="drv-help-btn"
+      kind="tertiary"
+    ></drv-button>
+    <!-- /help button -->
+
+    <!-- progress navigation -->
+    <drv-progressnav progressNavTitle="Antragsfortschritt">
+      <drv-progressnavnode
+        name="Progress Step 1"
+        url="#"
+        [completed]="true"
+        labelCompleted="abgeschlossen"
+        labelNotCompleted="'nicht abgeschlossen'"
+      ></drv-progressnavnode>
+      <drv-progressnavnode
+        name="Progress Step 2"
+        url="#"
+        [current]="true"
+        labelCompleted="abgeschlossen"
+        labelNotCompleted="'nicht abgeschlossen'"
+      ></drv-progressnavnode>
+      <drv-progressnavnode
+        name="Progress Step 3"
+        url="#"
+        labelCompleted="abgeschlossen"
+        labelNotCompleted="'nicht abgeschlossen'"
+      ></drv-progressnavnode>
+      <drv-progressnavnode
+        name="Progress Step 4"
+        url="#"
+        labelCompleted="abgeschlossen"
+        labelNotCompleted="'nicht abgeschlossen'"
+      ></drv-progressnavnode>
+      <drv-progressnavnode
+        name="Progress Step 5"
+        url="#"
+        labelCompleted="abgeschlossen"
+        labelNotCompleted="'nicht abgeschlossen'"
+      ></drv-progressnavnode>
+    </drv-progressnav>
+    <!-- /progress navigation -->
+
+    <!-- HERE IS THE CONTENT -->
+
+    <ng-content>**CONTENT**</ng-content>
+    <!-- /content-block -->
+  </drv-apppage>
+
+<% } else { %>
+  <!-- ------------------- BlankPage page template -------------------- -->
+
+  <drv-blankpage [fullWidth]="true">
+    <!-- HERE IS THE CONTENT -->
+
+    <ng-content>**CONTENT**</ng-content>
+    <!-- /content-block -->
+  </drv-blankpage>
+
+<% } %>
+
+  <drv-footer
+    id="footer"
+    copyright="© Deutsche Rentenversicherung 2023"
+    version="App-Version: 1.0.0"
+    [items]="[
+      { href: '#impressum', text: 'Impressum' },
+      { href: '#datenschutz', text: 'Datenschutz' },
+      { href: '#barrierefreiheit', text: 'Barrierefreiheit' },
+      { href: '#hilfe', text: 'Hilfe', icon: 'question-mark' },
+      {
+        href: '#',
+        text: 'DGS',
+        htmltarget: '_blank',
+        htmltitle: 'Deutsche Gebärden­sprache (Es öffnet sich eine neue Seite.)',
+        icon: 'sign-language'
+      },
+      {
+        href: '#',
+        text: 'Leichte Sprache',
+        htmltarget: '_blank',
+        htmltitle: '(Es öffnet sich eine neue Seite.)',
+        icon: 'easy-language'
+      }
+    ]"
+  ></drv-footer>
+</div>

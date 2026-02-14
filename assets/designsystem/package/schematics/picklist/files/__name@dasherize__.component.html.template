@@ -1,0 +1,47 @@
+<div drv-row>
+  <div drv-col [sm]="4" [md]="12" [lg]="7" [padding]="true">
+    <drv-table
+      #table
+      id="table"
+      data-testid="picklist-table"
+      [selectable]="true"
+      [sortable]="true"
+      variant="condensed"
+      [data]="{ header: tableHeader, body: templateData, selectedRows: selectedRows }"
+      (selected)="checkRow($event)"
+    ></drv-table>
+  </div>
+  <div drv-col [sm]="4" [md]="12" [lg]="1" [padding]="true">
+    <drv-button
+      data-testid="picklist-add"
+      kind="secondary"
+      label="Eintrag übernehmen"
+      iconType="arrow-right"
+      iconOnly="only"
+      (buttonClick)="assignSelected()"
+      [disabled]="hasSelectedItems"
+    ></drv-button>
+  </div>
+  <div drv-col [sm]="4" [md]="12" [lg]="4" [padding]="true">
+    <drv-itemlist [isScrollable]="true" data-testid="picklist-itemlist">
+      @for (item of availableItems; track item) {
+        @if (item.selected) {
+          <drv-itemlistitem>
+            <div class="demo-app-list--item">
+              <p class="drv-title-small">{{item.data.name}}</p>
+              <p class="label-02">{{item.data.address}}</p>
+              <drv-button
+                [label]="item.data.name + ' löschen'"
+                kind="secondary"
+                iconOnly="only"
+                iconType="trash"
+                hostClass="demo-app-list--action"
+                (buttonClick)="unassignItem(item)">
+              </drv-button>
+            </div>
+          </drv-itemlistitem>
+        }
+      }
+    </drv-itemlist>
+  </div>
+</div>

@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/schema",
+  "title": "paginated table pattern",
+  "type": "object",
+  "properties": {
+    "selector": {
+      "type": "string",
+      "description": "The selector prefix for the component",
+      "visible": false,
+      "default": "drv"
+    },
+    "project": {
+      "type": "string",
+      "description": "The name of the project.",
+      "alias": "p"
+    },
+    "name": {
+      "type": "string",
+      "description": "The name of the component.",
+      "minLength": 1,
+      "x-prompt": "What name would you like to use for the paginated table component page?"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

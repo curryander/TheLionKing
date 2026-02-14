@@ -1,0 +1,91 @@
+import {
+  FormsModule,
+  ReactiveFormsModule,
+  UntypedFormBuilder,
+  UntypedFormGroup,
+  Validators
+} from '@angular/forms';
+import { Component } from '@angular/core';
+import {
+  type ,
+  FormAutoFocusDirective,
+  DropdownComponent,
+  FormerrorsComponent,
+  InputGroupComponent,
+  RadiobuttonComponent,
+  CheckboxComponent,
+  OptionGroupComponent,
+  TextareaComponent,
+  TextinputComponent,
+  InsuranceNumberComponent,
+  ButtonComponent,
+} from '@drv-ds/drv-design-system-ng';
+
+@Component({
+  standalone: true,
+  selector: '<%= selector %>-<%= name %>',
+  templateUrl: './<%= name %>.component.html',
+  imports: [
+    FormAutoFocusDirective,
+    DropdownComponent,
+    FormerrorsComponent,
+    InputGroupComponent,
+    RadiobuttonComponent,
+    CheckboxComponent,
+    OptionGroupComponent,
+    TextareaComponent,
+    TextinputComponent,
+    InsuranceNumberComponent,
+    ButtonComponent,
+    FormsModule,
+    ReactiveFormsModule
+  ],
+})
+export class <%= classify(name) %>Component {
+  public form: UntypedFormGroup;
+  public invalidOnSubmit = false;
+  public isSubmitted = false;
+  public autoFocusConfig: FormAutoFocusConfig = {
+    onInit: 'focusFirst',
+    onSubmit: 'focusFirstWithError',
+  };
+  <% if (hasTextinput === true) { %>
+  public textinputMaskOption = {
+    mask: 'DE## #### #### #### #### ##'.split('').map(char => {
+      if (char === '#') {
+        return /\d/;
+      }
+      return char;
+    }),
+  };
+  <% } %>
+
+  constructor(private fb: UntypedFormBuilder) {
+    this.form = fb.group({
+      <% if (hasInputgroupRadio === true) { %>
+      radioControl: [[], [Validators.required]],
+      <% } %>
+      <% if (hasDropdown === true) { %>
+      dropdownControl: [[], [Validators.required]],
+      <% } %>
+      <% if (hasTextinput === true) { %>
+      textinputControl: ['',  [Validators.required, Validators.minLength(22 + 5)]],
+      <% } %>
+      <% if (hasInsuranceNumber === true) { %>
+      insuranceNumberControl: ['',  [Validators.required]],
+      <% } %>
+      <% if (hasDisabledInput === true) { %>
+      disabledControl: { value: '', disabled: true },
+      <% } %>
+    });
+  }
+
+  // TODO apply drv-form-auto-focus directive and remove scrollIntoView
+  onSubmit(event: SubmitEvent) {
+    this.invalidOnSubmit = this.form.status !== 'VALID';
+
+    if (!this.invalidOnSubmit) {
+      this.isSubmitted = true;
+    }
+  }
+}

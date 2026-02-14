@@ -1,0 +1,54 @@
+import { Component } from '@angular/core';
+import {
+  ButtonComponent,
+  GridDirective,
+  RowDirective,
+  ColDirective,
+  HeaderComponent,
+  FooterComponent,
+  NotificationComponent,
+  NotificationService,
+  ApplicationHeaderComponent,
+  StageComponent,
+  StartpageComponent,
+  ContentpageComponent,
+  ApppageComponent,
+  BlankpageComponent,
+  NavigationComponent,
+  NavigationListComponent,
+  ProgressnavComponent,
+  ProgressnavNodeComponent,
+  LoadingComponent,
+
+} from '@drv-ds/drv-design-system-ng';
+
+@Component({
+  standalone: true,
+  selector: '<%= selector %>-<%= name %>',
+  templateUrl: './<%= name %>.component.html',
+  imports: [
+    ButtonComponent,
+    GridDirective,
+    RowDirective,
+    ColDirective,
+    HeaderComponent,
+    FooterComponent,
+    NotificationComponent,
+    ApplicationHeaderComponent,
+    StageComponent,
+    StartpageComponent,
+    ContentpageComponent,
+    ApppageComponent,
+    BlankpageComponent,
+    NavigationComponent,
+    NavigationListComponent,
+    ProgressnavComponent,
+    ProgressnavNodeComponent,
+    LoadingComponent,
+  ],
+})
+export class <%= classify(name) %>Component {
+  constructor() {
+    console.log('page template: "<%= page %>"');
+  }
+}

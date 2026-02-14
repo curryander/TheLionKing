@@ -1,0 +1,44 @@
+
+<drv-table
+  variant="condensed"
+  [selectable]="true"
+  (selected)="checkboxChange($event)"
+  >
+  <drv-thead
+    [data]="data.header"
+    [expandable]="true"
+    [sortable]="true"
+    [selectable]="true"
+    [indeterminate]="allCheckBoxIndeterminate"
+    [checked]="allCheckBoxChecked"
+    [expanded]="allExpanded"
+    (expandChange)="toggleAllExpandableRows($event)"
+    (allSelected)="allCheckboxChange($event)"
+    (sorted)="onSort($event)"
+    >
+  </drv-thead>
+  @for (row of data.body; track row; let i = $index) {
+    <drv-table-expandrow
+      [expanded]="row.expanded"
+      [selected]="row.selected"
+      [buttonLabel]="row.buttonLabel"
+      (expandChange)="expandChange($event, row)"
+      >
+      <td>{{ row.id }}</td>
+      <td>{{ row.firstName }}</td>
+      <td>{{ row.lastName }}</td>
+      <td>{{ row.email }}</td>
+      <td>{{ row.address }}</td>
+      <td>{{ row.city }}</td>
+      <td>
+        <drv-overflowmenu triggerButtonLabel="triggerButtonLabel">
+          <drv-button iconType="pen" variant="secondary" label="Ordner umbenennen" #button></drv-button>
+          <drv-button iconType="trash" variant="secondary" label="Ordner löschen" #button></drv-button>
+        </drv-overflowmenu>
+      </td>
+    </drv-table-expandrow>
+    <drv-table-expandedrow [colspan]="8">
+      <div [innerHTML]="row.content"></div>
+    </drv-table-expandedrow>
+  }
+</drv-table>

@@ -1,0 +1,31 @@
+{
+  "$schema": "http://json-schema.org/schema",
+  "title": "Default configuration for public or productive theme",
+  "type": "object",
+  "properties": {
+    "project": {
+      "type": "string",
+      "description": "The name of the project.",
+      "alias": "p"
+    },
+    "theme": {
+      "description": "The config depends on the theme (public or productive)",
+      "type": "string",
+      "default": "public",
+      "enum": [
+        "public",
+        "productive",
+        "eject"
+      ],
+      "x-prompt": {
+        "message": "Which theme would you like to use for the config?",
+        "type": "list",
+        "items": [
+          { "value": "public",  "label": "config for public theme" },
+          { "value": "productive", "label": "config for productive theme" },
+          { "value": "eject", "label": "just eject all config variables (custom theme)" }
+        ]
+      }
+    }
+  }
+}

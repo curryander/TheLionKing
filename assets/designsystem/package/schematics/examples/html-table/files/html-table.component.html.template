@@ -1,0 +1,54 @@
+<drv-table
+  variant="condensed"
+  [sortable]="true"
+  [selectable]="true"
+  layoutMobile="custom-grid"
+  class="drv-table--epostfach drv-table--advanced"
+  style="--drv-table-grid-columns: 1fr auto auto; --drv-table-grid-areas: 'td2 td4 td5' 'td3 td3 td3';"
+  >
+  <drv-thead
+    [data]="data.header"
+    [selectable]="true"
+    [indeterminate]="allCheckBoxIndeterminate"
+    [checked]="allCheckBoxChecked"
+    (allSelected)="allCheckboxChange($event)"
+    >
+  </drv-thead>
+  <tbody>
+    @for (item of data.body; track item; let i = $index) {
+      <tr>
+        <td class="drv-table__cell--collapsible-lg" style="--width: 5em;">
+          <drv-checkbox
+            [id]="'check' + i" [name]="'option' + i" [(ngModel)]="selectedRows[i]" (ngModelChange)="onSelect()"
+          ><span class="drv-vh">Zeile {{ i + 1 }} auswählen</span></drv-checkbox>
+        </td>
+        <td class="drv-table__cell--nowrap" drv-tooltip placement="bottom" [dynamic]="true" [tooltip]="item.from">
+          {{ item.from }}
+        </td>
+        <td class="drv-table__cell--nowrap" drv-tooltip placement="bottom" [dynamic]="true" [tooltip]="item.subject">
+          <a href="/#">{{ item.subject }}</a>
+        </td>
+        <td class="drv-table__cell--nowrap">
+          @if (item.attachment) {
+            <drv-icon
+              type="attachment"
+              label="Anhang: 450kB"
+              [tooltip]="true"
+              tooltipPosition="bottom-start"
+            ></drv-icon>
+          }
+          &nbsp;
+          @if (item.replied) {
+            <drv-icon
+              type="reply"
+              label="bereits beantwortet"
+              [tooltip]="true"
+              tooltipPosition="bottom-start"
+            ></drv-icon>
+          }
+        </td>
+        <td>{{ item.date }}</td>
+      </tr>
+    }
+  </tbody>
+</drv-table>

@@ -1,0 +1,22 @@
+<div drv-row>
+  <div drv-col [sm]="12" [md]="10" [lg]="8" [padding]="true">
+    <drv-table
+      id="table-2"
+      data-testid="paginated-table"
+      variant="condensed"
+      [data]="{ header: tableHeader, body: paginatedItems }"
+      [caption]="totalItems + ' Treffer'"
+      ></drv-table>
+
+    <drv-pagination
+      [pageMax]="totalPages"
+      [currentPage]="currentPage"
+      variant="no-line"
+      pageText="Seite"
+      prevText="Vorherige"
+      nextText="Nächste"
+      paginationLabel="Paginierung"
+      (pageSelect)="onSelectHandler($event)"
+    ></drv-pagination>
+  </div>
+</div>
