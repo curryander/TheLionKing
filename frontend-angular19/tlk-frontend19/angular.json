@@ -35,6 +35,7 @@
             "styles": [
               "src/assets/css/font-face.min.css",
               "src/assets/css/basics.min.css",
+              "src/assets/css/grid.min.css",
               "src/assets/css/spacer.min.css"
             ],
             "scripts": []
@@ -45,7 +46,7 @@
                 {
                   "type": "initial",
                   "maximumWarning": "500kB",
-                  "maximumError": "1MB"
+                  "maximumError": "2MB"
                 },
                 {
                   "type": "anyComponentStyle",
