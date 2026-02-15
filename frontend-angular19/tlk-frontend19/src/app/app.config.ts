@@ -10,7 +10,10 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes),
     {
       provide: CONFIG_TOKEN,
-      useValue: DEFAULT_CONFIG_PRODUCTIVE
+      useValue: {
+        DEFAULT_CONFIG_PRODUCTIVE,
+        spritePath: './assets/img/sprite.svg'
+      }
     }
   ]
 };
