@@ -1,12 +1,5 @@
 {
   "devDependencies": {
     "@openapitools/openapi-generator-cli": "^2.24.0"
-  },
-  "scripts": {
-    "start": "cmd /c \"call .venv\\Scripts\\activate && cd Backend\\TheLionKing && mvn spring-boot:run\""
-  },
-  "dependencies": {
-    "20": "^3.1.9",
-    "@drv-ds/drv-design-system-ng": "file:../Designsystem/drv-design-system-ng-7.20.1.tgz"
   }
 }
