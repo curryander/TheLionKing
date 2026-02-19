@@ -67,7 +67,13 @@ public class LlmService {
         String context;
         try { context = mapper.writeValueAsString(ctx); } catch (Exception e) { context = "[]"; }
         String prompt = defaultIfBlank(prompts.getPageGrouping(), defaultGroupingPrompt());
-        Map<String, Object> payload = callLlm(prompt, context);
+        Map<String, Object> payload;
+        try {
+            payload = callLlm(prompt, context);
+        } catch (Exception ex) {
+            log.warn("Page grouping via LLM failed, using fallback groups. reason={}", ex.toString());
+            payload = new HashMap<>();
+        }
         List<List<Integer>> groups = new ArrayList<>();
         if (payload != null) {
             Object gs = payload.get("groups");
@@ -84,7 +90,7 @@ public class LlmService {
             }
         }
         if (groups.isEmpty()) {
-            for (Page p : pages) groups.add(java.util.List.of(p.getPageIndex()));
+            for (int i = 0; i < pages.size(); i++) groups.add(java.util.List.of(i));
         }
         return groups;
     }
@@ -96,7 +102,13 @@ public class LlmService {
         }
         String context;
         try { context = mapper.writeValueAsString(markdown == null ? "" : markdown); } catch (Exception e) { context = markdown == null ? "" : markdown; }
-        Map<String, Object> result = callLlm(prompt, context);
+        Map<String, Object> result;
+        try {
+            result = callLlm(prompt, context);
+        } catch (Exception ex) {
+            log.warn("Page usability via LLM failed, defaulting to usable=true. reason={}", ex.toString());
+            return true;
+        }
         Object use = result.get("use");
         if (use instanceof Boolean b) return b;
         if (use instanceof String s) return Boolean.parseBoolean(s);

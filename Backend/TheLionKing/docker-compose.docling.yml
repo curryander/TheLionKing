@@ -1,0 +1,24 @@
+services:
+  docling:
+    image: quay.io/docling-project/docling-serve-cpu:latest
+    container_name: docling-serve
+    ports:
+      - "5001:5001"
+    environment:
+      # UI aktivieren (optional)
+      DOCLING_SERVE_ENABLE_UI: "1"
+      # Falls Docling-Serve weitere Options-Envvars unterstützt, kannst du sie hier ergänzen.
+    volumes:
+      # Persistente Ablage (z.B. für Cache/Arbeitsdaten; je nach Image intern genutzt)
+      - docling_data:/data
+      # Optional: lokales Verzeichnis für eigene Dateien (z.B. zum Debuggen/Teilen)
+      - ./docling-files:/files
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5001/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  docling_data:

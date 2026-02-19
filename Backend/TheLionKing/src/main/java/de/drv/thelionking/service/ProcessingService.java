@@ -9,7 +9,6 @@ import de.drv.thelionking.data.page.PageRepository;
 import de.drv.thelionking.model.SubDocument;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import de.drv.thelionking.config.DoclingProperties;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -19,23 +18,20 @@ import java.util.*;
 @lombok.extern.slf4j.Slf4j
 public class ProcessingService {
     private final PdfService pdfService;
-    private final DoclingRunnerService doclingRunner;
-    private final DoclingProperties props;
+    private final DoclingService doclingRunner;
     private final LlmService llmService;
     private final VorgangRepository vorgangRepository;
     private final PageRepository pageRepository;
     private final DocumentRepository documentRepository;
 
     public ProcessingService(PdfService pdfService,
-                             DoclingRunnerService doclingRunner,
+                             DoclingService doclingRunner,
                              LlmService llmService,
-                             DoclingProperties props,
                              VorgangRepository vorgangRepository,
                              PageRepository pageRepository,
                              DocumentRepository documentRepository) {
         this.pdfService = pdfService;
         this.doclingRunner = doclingRunner;
-        this.props = props;
         this.llmService = llmService;
         this.vorgangRepository = vorgangRepository;
         this.pageRepository = pageRepository;
@@ -46,13 +42,56 @@ public class ProcessingService {
     public Vorgang process(Vorgang vorgang) throws IOException {
         try {
             log.info("Process start for Vorgang {}", vorgang.getId());
-            List<byte[]> pageBytes = pdfService.splitToPages(vorgang.getMultiPageDocument());
-            int total = pageBytes.size();
-            int done = 0;
-            log.info("Split original PDF into {} pages", total);
+            processDoclingOnlyInternal(vorgang);
+            continueWithLlmInternal(vorgang);
+            vorgang.setProgress(100);
+            log.info("Process finished for Vorgang {} with progress {}%", vorgang.getId(), vorgang.getProgress());
+            return vorgangRepository.save(vorgang);
+        } catch (Exception e) {
+            log.error("Processing failed for Vorgang {}", vorgang.getId(), e);
+            vorgang.setErrorCode("SERVER_ERROR");
+            vorgang.setErrorMessage(e.getMessage());
+            vorgang.setProgress(100);
+            return vorgangRepository.save(vorgang);
+        }
+    }
 
-            // Persist Page entries and perform OCR
-            List<Page> pages = new ArrayList<>();
+    @Transactional
+    public Vorgang processDoclingOnly(Vorgang vorgang) throws IOException {
+        try {
+            log.info("Docling preview start for Vorgang {}", vorgang.getId());
+            processDoclingOnlyInternal(vorgang);
+            return vorgangRepository.save(vorgang);
+        } catch (Exception e) {
+            log.error("Docling preview failed for Vorgang {}", vorgang.getId(), e);
+            vorgang.setErrorCode("SERVER_ERROR");
+            vorgang.setErrorMessage(e.getMessage());
+            vorgang.setProgress(100);
+            return vorgangRepository.save(vorgang);
+        }
+    }
+
+    @Transactional
+    public Vorgang continueWithLlm(Vorgang vorgang) throws IOException {
+        try {
+            log.info("Continue with LLM for Vorgang {}", vorgang.getId());
+            continueWithLlmInternal(vorgang);
+            vorgang.setProgress(100);
+            return vorgangRepository.save(vorgang);
+        } catch (Exception e) {
+            log.error("LLM continuation failed for Vorgang {}", vorgang.getId(), e);
+            vorgang.setErrorCode("SERVER_ERROR");
+            vorgang.setErrorMessage(e.getMessage());
+            vorgang.setProgress(100);
+            return vorgangRepository.save(vorgang);
+        }
+    }
+
+    private List<Page> processDoclingOnlyInternal(Vorgang vorgang) throws IOException {
+        List<Page> pages = pageRepository.findAllByVorgang_IdOrderByPageIndexAsc(vorgang.getId());
+        if (pages.isEmpty()) {
+            List<byte[]> pageBytes = pdfService.splitToPages(vorgang.getMultiPageDocument());
+            log.info("Split original PDF into {} pages", pageBytes.size());
             int idx = 0;
             for (byte[] pb : pageBytes) {
                 Page p = new Page(idx++, pb, vorgang);
@@ -60,37 +99,75 @@ public class ProcessingService {
                 pages.add(p);
                 log.info("Persisted Page index={} id={}", p.getPageIndex(), p.getId());
             }
+        } else {
+            log.info("Reusing {} existing pages for Vorgang {}", pages.size(), vorgang.getId());
+        }
 
-            for (Page p : pages) {
-                log.info("Docling OCR for Page index={} id={} started", p.getPageIndex(), p.getId());
-                var docling = doclingRunner.convertToJson(props.getLocalPath(), props.getInputPath(), props.getOutputPath());
-//                p.setDoclingJson(docling.getJson());
-//                p.setDoclingMarkdown(docling.getMarkdown());
-//                boolean usable;
-//                String md = p.getDoclingMarkdown();
-//                if (md == null || md.trim().isEmpty()) {
-//                    usable = false;
-//                } else {
-//                    usable = llmService.isPageUsable(md);
-//                }
-//                p.setUsable(usable);
-//                pageRepository.save(p);
-//                log.info("Docling OCR done for Page index={} mdChars={} usable={}", p.getPageIndex(),
-//                        docling.getMarkdown() != null ? docling.getMarkdown().length() : 0,
-//                        usable);
-                log.info("Docling abgeschlossen. Outputpath: " + docling.toString());
+        int total = pages.size();
+        int done = 0;
+        for (Page p : pages) {
+            boolean alreadyDone = (p.getDoclingJson() != null && !p.getDoclingJson().isBlank())
+                    || (p.getDoclingMarkdown() != null && !p.getDoclingMarkdown().isBlank());
+            if (alreadyDone) {
                 done++;
-                // Up to 60% during OCR
-                vorgang.setProgress(Math.min(60, (int) Math.round(60.0 * done / total)));
-                vorgangRepository.save(vorgang);
-                log.info("Progress after OCR page {}: {}%", p.getPageIndex(), vorgang.getProgress());
+                continue;
+            }
+            log.info("Docling OCR for Page index={} id={} started", p.getPageIndex(), p.getId());
+            try {
+                var docling = doclingRunner.extractDocling(p.getPdf());
+                p.setDoclingJson(docling.getJson());
+                p.setDoclingMarkdown(docling.getMarkdown());
+                boolean usable;
+                String md = p.getDoclingMarkdown();
+                if (md == null || md.trim().isEmpty()) {
+                    usable = false;
+                } else {
+                    usable = llmService.isPageUsable(md);
+                }
+                p.setUsable(usable);
+                log.info("Docling OCR done for Page index={} mdChars={} usable={}",
+                        p.getPageIndex(),
+                        docling.getMarkdown() != null ? docling.getMarkdown().length() : 0,
+                        usable);
+            } catch (Exception ex) {
+                log.error("Docling OCR failed for Page index={} id={}: {}",
+                        p.getPageIndex(), p.getId(), ex.getMessage(), ex);
+                p.setDoclingJson(null);
+                p.setDoclingMarkdown(null);
+                p.setUsable(false);
+            }
+            pageRepository.save(p);
+            done++;
+            vorgang.setProgress(Math.min(60, (int) Math.round(60.0 * done / Math.max(1, total))));
+            vorgangRepository.save(vorgang);
+            log.info("Progress after OCR page {}: {}%", p.getPageIndex(), vorgang.getProgress());
+        }
+        vorgang.setProgress(Math.max(vorgang.getProgress(), 60));
+        vorgangRepository.save(vorgang);
+        return pageRepository.findAllByVorgang_IdOrderByPageIndexAsc(vorgang.getId());
+    }
+
+    private void continueWithLlmInternal(Vorgang vorgang) throws IOException {
+            List<Page> pages = pageRepository.findAllByVorgang_IdOrderByPageIndexAsc(vorgang.getId());
+            if (pages.isEmpty()) {
+                pages = processDoclingOnlyInternal(vorgang);
             }
 
             // Group pages into documents
             List<Page> usablePages = new ArrayList<>();
             for (Page p : pages) if (p.isUsable()) usablePages.add(p);
             log.info("Usable pages: {}/{}", usablePages.size(), pages.size());
+            if (usablePages.isEmpty()) {
+                log.warn("No usable pages for Vorgang {}. Skipping LLM extraction.", vorgang.getId());
+                return;
+            }
             List<List<Integer>> groups = llmService.groupPages(usablePages);
+            if (groups.isEmpty() && !usablePages.isEmpty()) {
+                List<Integer> fallback = new ArrayList<>();
+                for (int i = 0; i < usablePages.size(); i++) fallback.add(i);
+                groups = List.of(fallback);
+                log.warn("Grouping returned empty result, using one fallback group with all usable pages.");
+            }
             log.info("Grouping result: {} groups -> {}", groups.size(), groups);
             // Create Documents for each group and extract properties
             List<SubDocument> subDocs = new ArrayList<>();
@@ -177,35 +254,58 @@ public class ProcessingService {
 
             log.info("Starting aggregation across {} documents", subDocs.size());
             var aggregated = llmService.aggregateVorgangFields(subDocs);
-        if (aggregated != null) {
-            log.info("Aggregation result: {}", aggregated);
-            Object fn = aggregated.get("firstName"); if (fn instanceof String s) vorgang.setFirstName(s);
-            Object sn = aggregated.get("surname"); if (sn instanceof String s) vorgang.setSurname(s);
-            Object vs = aggregated.get("vsnr"); if (vs instanceof String s) vorgang.setVsnr(s);
-            Object bd = aggregated.get("birthDate"); if (bd instanceof String s) {
-                try { vorgang.setBirthDate(LocalDate.parse(s)); } catch (Exception ignored) {}
+            if (aggregated != null) {
+                log.info("Aggregation result: {}", aggregated);
+                Object fn = aggregated.get("firstName"); if (fn instanceof String s) vorgang.setFirstName(s);
+                Object sn = aggregated.get("surname"); if (sn instanceof String s) vorgang.setSurname(s);
+                Object vs = aggregated.get("vsnr"); if (vs instanceof String s) vorgang.setVsnr(s);
+                Object bd = aggregated.get("birthDate"); if (bd instanceof String s) {
+                    try { vorgang.setBirthDate(LocalDate.parse(s)); } catch (Exception ignored) {}
+                }
+                Object sum = aggregated.get("summary"); if (sum instanceof String s) vorgang.setSummary(s);
             }
-            Object sum = aggregated.get("summary"); if (sum instanceof String s) vorgang.setSummary(s);
-        }
-            vorgang.setProgress(100);
-            log.info("Process finished for Vorgang {} with progress {}%", vorgang.getId(), vorgang.getProgress());
-            return vorgangRepository.save(vorgang);
-        } catch (Exception e) {
-            log.error("Processing failed for Vorgang {}", vorgang.getId(), e);
-            vorgang.setErrorCode("SERVER_ERROR");
-            vorgang.setErrorMessage(e.getMessage());
-            vorgang.setProgress(100);
-            return vorgangRepository.save(vorgang);
-        }
     }
 
     @org.springframework.scheduling.annotation.Async
+    @Transactional
     public void processAsync(UUID vorgangId) {
         vorgangRepository.findById(vorgangId).ifPresent(v -> {
             try {
                 process(v);
             } catch (IOException e) {
                 log.error("Async processing failed for Vorgang {}", v.getId(), e);
+                v.setErrorCode("SERVER_ERROR");
+                v.setErrorMessage(e.getMessage());
+                v.setProgress(100);
+                vorgangRepository.save(v);
+            }
+        });
+    }
+
+    @org.springframework.scheduling.annotation.Async
+    @Transactional
+    public void processDoclingOnlyAsync(UUID vorgangId) {
+        vorgangRepository.findById(vorgangId).ifPresent(v -> {
+            try {
+                processDoclingOnly(v);
+            } catch (IOException e) {
+                log.error("Async docling preview failed for Vorgang {}", v.getId(), e);
+                v.setErrorCode("SERVER_ERROR");
+                v.setErrorMessage(e.getMessage());
+                v.setProgress(100);
+                vorgangRepository.save(v);
+            }
+        });
+    }
+
+    @org.springframework.scheduling.annotation.Async
+    @Transactional
+    public void continueWithLlmAsync(UUID vorgangId) {
+        vorgangRepository.findById(vorgangId).ifPresent(v -> {
+            try {
+                continueWithLlm(v);
+            } catch (IOException e) {
+                log.error("Async LLM continuation failed for Vorgang {}", v.getId(), e);
                 v.setErrorCode("SERVER_ERROR");
                 v.setErrorMessage(e.getMessage());
                 v.setProgress(100);

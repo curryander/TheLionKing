@@ -16,16 +16,20 @@
     input[type="text"] { width: 100%; padding: .4rem; }
   </style>
   <script>
-    async function startProcess() {
+    async function startPreview() {
       const baseUrlInput = document.getElementById('baseUrl');
       const fileInput = document.getElementById('pdfFile');
       const statusEl = document.getElementById('status');
       const idEl = document.getElementById('processId');
       const jsonEl = document.getElementById('json');
       const pdfsEl = document.getElementById('pdfs');
+      const previewEl = document.getElementById('doclingPreview');
+      const continueWrapEl = document.getElementById('continueWrap');
 
       jsonEl.textContent = '';
       pdfsEl.innerHTML = '';
+      previewEl.textContent = '';
+      continueWrapEl.style.display = 'none';
 
       const baseUrl = (baseUrlInput.value || '').replace(/\/$/, '');
       if (!fileInput.files || fileInput.files.length === 0) {
@@ -33,11 +37,11 @@
         return;
       }
       const file = fileInput.files[0];
-      statusEl.textContent = 'Sende /start...';
+      statusEl.textContent = 'Sende /start-preview...';
       idEl.textContent = '-';
 
       try {
-        const startResp = await fetch(baseUrl + '/v1/start', {
+        const startResp = await fetch(baseUrl + '/v1/start-preview', {
           method: 'POST',
           headers: { 'Content-Type': 'application/pdf' },
           body: file
@@ -45,14 +49,92 @@
 
         if (startResp.status !== 202) {
           const text = await startResp.text();
-          statusEl.textContent = 'Fehler bei /start: ' + startResp.status + ' ' + startResp.statusText;
+          statusEl.textContent = 'Fehler bei /start-preview: ' + startResp.status + ' ' + startResp.statusText;
           jsonEl.textContent = text;
           return;
         }
         const startJson = await startResp.json();
         const id = startJson.id || startJson;
         idEl.textContent = id;
-        statusEl.textContent = 'Gestartet. Warte auf Ergebnis...';
+        statusEl.textContent = 'Docling-Preview gestartet. Warte auf Vorschau...';
+        pollPreview(baseUrl, id);
+      } catch (e) {
+        statusEl.textContent = 'Fehler: ' + (e && e.message ? e.message : e);
+      }
+    }
+
+    async function pollPreview(baseUrl, id) {
+      const statusEl = document.getElementById('status');
+      const jsonEl = document.getElementById('json');
+      const previewEl = document.getElementById('doclingPreview');
+      const continueWrapEl = document.getElementById('continueWrap');
+
+      async function once() {
+        try {
+          const resp = await fetch(baseUrl + '/v1/preview/' + encodeURIComponent(id), {
+            headers: { 'Accept': 'application/json' }
+          });
+          if (resp.status === 202) {
+            let progressText = '';
+            try {
+              const p = await resp.json();
+              if (p && typeof p.progress === 'number') progressText = ' (' + p.progress + '%)';
+            } catch {}
+            statusEl.textContent = 'Docling läuft' + progressText + '...';
+            setTimeout(once, 2000);
+            return;
+          }
+          if (!resp.ok) {
+            const text = await resp.text();
+            statusEl.textContent = 'Fehler bei /preview: ' + resp.status + ' ' + resp.statusText;
+            jsonEl.textContent = text;
+            return;
+          }
+          const preview = await resp.json();
+          renderPreview(preview);
+          continueWrapEl.style.display = 'block';
+          statusEl.textContent = 'Docling-Vorschau fertig. Jetzt LLM-Verarbeitung starten.';
+        } catch (e) {
+          statusEl.textContent = 'Fehler: ' + (e && e.message ? e.message : e);
+        }
+      }
+      once();
+    }
+
+    function renderPreview(preview) {
+      const previewEl = document.getElementById('doclingPreview');
+      const pages = (preview && Array.isArray(preview.pages)) ? preview.pages : [];
+      const clean = pages.map(p => ({
+        pageIndex: p.pageIndex,
+        usable: p.usable,
+        markdown: p.markdown,
+        json: p.json
+      }));
+      previewEl.textContent = JSON.stringify(clean, null, 2);
+    }
+
+    async function startLlmProcessing() {
+      const baseUrl = (document.getElementById('baseUrl').value || '').replace(/\/$/, '');
+      const id = (document.getElementById('processId').textContent || '').trim();
+      const statusEl = document.getElementById('status');
+      const jsonEl = document.getElementById('json');
+      if (!id || id === '-') {
+        alert('Keine Prozess-ID vorhanden.');
+        return;
+      }
+      const proceed = window.confirm('Docling-Vorschau wurde angezeigt. Soll jetzt die LLM-Verarbeitung gestartet werden?');
+      if (!proceed) return;
+
+      statusEl.textContent = 'Starte LLM-Verarbeitung...';
+      try {
+        const resp = await fetch(baseUrl + '/v1/continue/' + encodeURIComponent(id), { method: 'POST' });
+        if (!resp.ok && resp.status !== 202) {
+          const text = await resp.text();
+          statusEl.textContent = 'Fehler bei /continue: ' + resp.status + ' ' + resp.statusText;
+          jsonEl.textContent = text;
+          return;
+        }
+        statusEl.textContent = 'LLM-Verarbeitung gestartet. Warte auf Ergebnis...';
         pollResult(baseUrl, id);
       } catch (e) {
         statusEl.textContent = 'Fehler: ' + (e && e.message ? e.message : e);
@@ -151,7 +233,7 @@
 
     function setDefaultBaseUrl() {
       // Default to local backend
-      document.getElementById('baseUrl').value = 'http://localhost:8080';
+      document.getElementById('baseUrl').value = 'http://localhost:8181';
     }
     window.addEventListener('DOMContentLoaded', setDefaultBaseUrl);
   </script>
@@ -161,13 +243,16 @@
   <fieldset>
     <legend>Einstellungen</legend>
     <label>Backend Base URL
-      <input id="baseUrl" type="text" placeholder="http://localhost:8080" />
+      <input id="baseUrl" type="text" placeholder="http://localhost:8181" />
     </label>
   </fieldset>
   <fieldset>
-    <legend>PDF hochladen und Prozess starten</legend>
+    <legend>PDF hochladen und Docling-Vorschau starten</legend>
     <input id="pdfFile" type="file" accept="application/pdf" />
-    <button onclick="startProcess()">Start</button>
+    <button onclick="startPreview()">Docling-Vorschau starten</button>
+    <div id="continueWrap" style="display:none; margin-top:.5rem;">
+      <button onclick="startLlmProcessing()">LLM-Verarbeitung jetzt starten</button>
+    </div>
     <div id="status" class="muted">Bereit.</div>
     <div class="muted">Process ID: <span id="processId">-</span></div>
   </fieldset>
@@ -179,6 +264,10 @@
   </fieldset>
 
   <div class="row">
+    <div class="col">
+      <h3>Docling Vorschau</h3>
+      <pre id="doclingPreview"></pre>
+    </div>
     <div class="col">
       <h3>Result JSON</h3>
       <pre id="json"></pre>

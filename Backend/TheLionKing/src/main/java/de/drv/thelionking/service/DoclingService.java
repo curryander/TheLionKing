@@ -7,6 +7,7 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientResponseException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -52,14 +53,32 @@ public class DoclingService {
         body.add("to_formats", "md");
 
         HttpEntity<MultiValueMap<String, Object>> entity = new HttpEntity<>(body, headers);
-        ResponseEntity<String> resp;
-        try {
-            resp = restTemplate.postForEntity(uri, entity, String.class);
-        } catch (RestClientResponseException e) {
-            String responseBody = e.getResponseBodyAsString();
-            String preview = responseBody != null && responseBody.length() > 1000 ? responseBody.substring(0,1000) + "..." : responseBody;
-            log.error("Docling call failed: status={}, url={}, body~preview={}", e.getRawStatusCode(), uri, preview);
-            throw new IllegalStateException("Docling convert failed: " + e.getRawStatusCode(), e);
+        ResponseEntity<String> resp = null;
+        RuntimeException lastError = null;
+        for (int attempt = 1; attempt <= 3; attempt++) {
+            try {
+                resp = restTemplate.postForEntity(uri, entity, String.class);
+                break;
+            } catch (RestClientResponseException e) {
+                String responseBody = e.getResponseBodyAsString();
+                String preview = responseBody != null && responseBody.length() > 1000 ? responseBody.substring(0,1000) + "..." : responseBody;
+                log.error("Docling call failed: attempt={}, status={}, url={}, body~preview={}", attempt, e.getRawStatusCode(), uri, preview);
+                lastError = new IllegalStateException("Docling convert failed: " + e.getRawStatusCode(), e);
+            } catch (ResourceAccessException e) {
+                log.warn("Docling call network error: attempt={}, url={}, msg={}", attempt, uri, e.getMessage());
+                lastError = new IllegalStateException("Docling network failure", e);
+            }
+            if (attempt < 3) {
+                try {
+                    Thread.sleep(500L * attempt);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException("Docling retry interrupted", ie);
+                }
+            }
+        }
+        if (resp == null) {
+            throw lastError != null ? lastError : new IllegalStateException("Docling convert failed");
         }
         if (!resp.getStatusCode().is2xxSuccessful()) {
             String responseBody = resp.getBody();
