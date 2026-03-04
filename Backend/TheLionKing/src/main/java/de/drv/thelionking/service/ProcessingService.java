@@ -20,6 +20,7 @@ public class ProcessingService {
     private final PdfService pdfService;
     private final DoclingService doclingRunner;
     private final LlmService llmService;
+    private final ResultJsonExportService resultJsonExportService;
     private final VorgangRepository vorgangRepository;
     private final PageRepository pageRepository;
     private final DocumentRepository documentRepository;
@@ -27,12 +28,14 @@ public class ProcessingService {
     public ProcessingService(PdfService pdfService,
                              DoclingService doclingRunner,
                              LlmService llmService,
+                             ResultJsonExportService resultJsonExportService,
                              VorgangRepository vorgangRepository,
                              PageRepository pageRepository,
                              DocumentRepository documentRepository) {
         this.pdfService = pdfService;
         this.doclingRunner = doclingRunner;
         this.llmService = llmService;
+        this.resultJsonExportService = resultJsonExportService;
         this.vorgangRepository = vorgangRepository;
         this.pageRepository = pageRepository;
         this.documentRepository = documentRepository;
@@ -42,7 +45,9 @@ public class ProcessingService {
     public Vorgang process(Vorgang vorgang) throws IOException {
         try {
             log.info("Process start for Vorgang {}", vorgang.getId());
-            processDoclingOnlyInternal(vorgang);
+            List<Page> doclingPages = processDoclingOnlyInternal(vorgang);
+            resultJsonExportService.exportDoclingPreview(vorgang, doclingPages);
+            resultJsonExportService.exportDoclingDocumentResult(vorgang, doclingPages);
             continueWithLlmInternal(vorgang);
             vorgang.setProgress(100);
             log.info("Process finished for Vorgang {} with progress {}%", vorgang.getId(), vorgang.getProgress());
@@ -60,7 +65,9 @@ public class ProcessingService {
     public Vorgang processDoclingOnly(Vorgang vorgang) throws IOException {
         try {
             log.info("Docling preview start for Vorgang {}", vorgang.getId());
-            processDoclingOnlyInternal(vorgang);
+            List<Page> doclingPages = processDoclingOnlyInternal(vorgang);
+            resultJsonExportService.exportDoclingPreview(vorgang, doclingPages);
+            resultJsonExportService.exportDoclingDocumentResult(vorgang, doclingPages);
             return vorgangRepository.save(vorgang);
         } catch (Exception e) {
             log.error("Docling preview failed for Vorgang {}", vorgang.getId(), e);

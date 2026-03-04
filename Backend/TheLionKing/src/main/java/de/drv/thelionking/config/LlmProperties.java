@@ -6,25 +6,27 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @Setter
 @Getter
-@ConfigurationProperties(prefix = "llm")
+@ConfigurationProperties(prefix = "spring.ai.openai")
 public class LlmProperties {
-    private String baseUrl;            // e.g. https://llm.example.com
-    private String extractPath;        // kept for custom gateways (unused for Watsonx direct)
-    private String aggregatePath;      // kept for custom gateways (unused for Watsonx direct)
-    private String apiKey;             // Watsonx API key
+    private String baseUrl = "https://api.openai.com";
+    private String apiKey;
+    private Chat chat = new Chat();
 
-    // Watsonx-specific
-    private String versionDate;        // e.g. 2025-09-19
-    private String projectId;          // Watsonx project id
-    private String modelId;            // e.g. meta-llama/llama-3-2-90b-vision-instruct
-    private String iamTokenUrl = "https://iam.cloud.ibm.com/identity/token";
+    public String resolveModel() {
+        if (chat == null || chat.getOptions() == null) return "gpt-4o-mini";
+        String model = chat.getOptions().getModel();
+        return (model == null || model.isBlank()) ? "gpt-4o-mini" : model;
+    }
 
-    public String getVersionDate() { return versionDate; }
-    public void setVersionDate(String versionDate) { this.versionDate = versionDate; }
-    public String getProjectId() { return projectId; }
-    public void setProjectId(String projectId) { this.projectId = projectId; }
-    public String getModelId() { return modelId; }
-    public void setModelId(String modelId) { this.modelId = modelId; }
-    public String getIamTokenUrl() { return iamTokenUrl; }
-    public void setIamTokenUrl(String iamTokenUrl) { this.iamTokenUrl = iamTokenUrl; }
+    @Setter
+    @Getter
+    public static class Chat {
+        private Options options = new Options();
+    }
+
+    @Setter
+    @Getter
+    public static class Options {
+        private String model = "gpt-4o-mini";
+    }
 }

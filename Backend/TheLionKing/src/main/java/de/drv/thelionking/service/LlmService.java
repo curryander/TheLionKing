@@ -30,8 +30,6 @@ public class LlmService {
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
             .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
     private final PromptProperties prompts;
-    private String cachedBearer;
-    private long cachedExpiryEpoch = 0L;
 
     public LlmService(RestTemplate restTemplate, LlmProperties props, PromptProperties prompts) {
         this.restTemplate = restTemplate;
@@ -199,11 +197,7 @@ public class LlmService {
     }
 
     private Map<String, Object> callLlm(String prompt, String context) {
-        // Prefer chat endpoint (Watsonx recommendation), fallback to legacy text generation
-        String content = callWatsonxChat(prompt, context);
-        if (content == null) {
-            content = callWatsonxGeneration(prompt, context);
-        }
+        String content = callOpenAiChat(prompt, context);
         if (content == null || content.isBlank()) {
             return new HashMap<>();
         }
@@ -235,91 +229,52 @@ public class LlmService {
         }
     }
 
-    private String callWatsonxChat(String prompt, String context) {
+    private String callOpenAiChat(String prompt, String context) {
         String base = props.getBaseUrl();
-        String version = props.getVersionDate();
-        if (base == null || base.isBlank() || version == null || version.isBlank()) {
-            throw new IllegalStateException("llm.base-url/version-date not configured");
+        String apiKey = props.getApiKey();
+        if (base == null || base.isBlank()) {
+            throw new IllegalStateException("spring.ai.openai.base-url not configured");
         }
-        URI uri = URI.create(join(base, "/ml/v1/text/chat") + "?version=" + version);
+        if (apiKey == null || apiKey.isBlank()) {
+            throw new IllegalStateException("spring.ai.openai.api-key not configured");
+        }
+        URI uri = URI.create(join(base, base.endsWith("/v1") ? "/chat/completions" : "/v1/chat/completions"));
 
         Map<String, Object> body = new HashMap<>();
-        body.put("model_id", props.getModelId());
-        body.put("project_id", props.getProjectId());
+        body.put("model", props.resolveModel());
         List<Map<String, Object>> messages = new ArrayList<>();
+        Map<String, Object> systemMsg = new HashMap<>();
+        systemMsg.put("role", "system");
+        systemMsg.put("content", "You are a strict JSON API. Return valid JSON only.");
+        messages.add(systemMsg);
         String userContent = prompt + "\n\nContext:\n" + (context == null ? "" : context);
         Map<String, Object> userMsg = new HashMap<>();
         userMsg.put("role", "user");
         userMsg.put("content", userContent);
         messages.add(userMsg);
         body.put("messages", messages);
-        Map<String, Object> params = new HashMap<>();
-        params.put("decoding_method", "greedy");
-        params.put("max_new_tokens", 512);
-        params.put("temperature", 0);
-        // Hint model to return JSON if supported
+        body.put("max_tokens", 512);
+        body.put("temperature", 0);
         Map<String, Object> responseFormat = new HashMap<>();
         responseFormat.put("type", "json_object");
-        params.put("response_format", responseFormat);
-        body.put("parameters", params);
+        body.put("response_format", responseFormat);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-        headers.set("Authorization", "Bearer " + getBearerToken());
+        headers.setBearerAuth(apiKey);
 
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
         try {
             ResponseEntity<String> resp = restTemplate.exchange(uri, HttpMethod.POST, entity, String.class);
             if (!resp.getStatusCode().is2xxSuccessful() || resp.getBody() == null) {
-                log.warn("Watsonx chat returned non-2xx: status={}, body preview={}", resp.getStatusCode(),
+                log.warn("OpenAI chat returned non-2xx: status={}, body preview={}", resp.getStatusCode(),
                         resp.getBody() != null && resp.getBody().length() > 400 ? resp.getBody().substring(0,400)+"..." : resp.getBody());
                 return null;
             }
-            String content = extractGeneratedTextChat(resp.getBody());
-            if (content == null) {
-                // Fallback: some chat responses may still carry 'results'
-                content = extractGeneratedText(resp.getBody());
-            }
-            return content;
+            return extractGeneratedTextChat(resp.getBody());
         } catch (org.springframework.web.client.RestClientResponseException e) {
-            log.warn("Watsonx chat HTTP error: status={}, body preview={}", e.getRawStatusCode(),
-                    e.getResponseBodyAsString() != null && e.getResponseBodyAsString().length() > 400 ? e.getResponseBodyAsString().substring(0,400)+"..." : e.getResponseBodyAsString());
-            return null;
-        }
-    }
-
-    private String callWatsonxGeneration(String prompt, String context) {
-        String base = props.getBaseUrl();
-        String version = props.getVersionDate();
-        URI uri = URI.create(join(base, "/ml/v1/text/generation") + "?version=" + version);
-        String input = prompt + "\n\nContext:\n" + (context == null ? "" : context);
-        Map<String, Object> body = new HashMap<>();
-        body.put("model_id", props.getModelId());
-        body.put("project_id", props.getProjectId());
-        body.put("input", input);
-        Map<String, Object> params = new HashMap<>();
-        params.put("decoding_method", "greedy");
-        params.put("max_new_tokens", 512);
-        params.put("temperature", 0);
-        body.put("parameters", params);
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-        headers.set("Authorization", "Bearer " + getBearerToken());
-
-        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
-        try {
-            ResponseEntity<String> resp = restTemplate.exchange(uri, HttpMethod.POST, entity, String.class);
-            if (!resp.getStatusCode().is2xxSuccessful() || resp.getBody() == null) {
-                log.error("Watsonx generation failed: status={}, body preview={}", resp.getStatusCode(),
-                        resp.getBody() != null && resp.getBody().length() > 400 ? resp.getBody().substring(0,400)+"..." : resp.getBody());
-                return null;
-            }
-            return extractGeneratedText(resp.getBody());
-        } catch (org.springframework.web.client.RestClientResponseException e) {
-            log.error("Watsonx generation HTTP error: status={}, body preview={}", e.getRawStatusCode(),
+            log.warn("OpenAI chat HTTP error: status={}, body preview={}", e.getRawStatusCode(),
                     e.getResponseBodyAsString() != null && e.getResponseBodyAsString().length() > 400 ? e.getResponseBodyAsString().substring(0,400)+"..." : e.getResponseBodyAsString());
             return null;
         }
@@ -328,44 +283,17 @@ public class LlmService {
         return callLlm(prompt, context);
     }
 
-    private String extractGeneratedText(String responseBody) {
-        try {
-            JsonNode root = mapper.readTree(responseBody);
-            JsonNode results = root.path("results");
-            if (results.isArray() && results.size() > 0) {
-                JsonNode generated = results.get(0).path("generated_text");
-                if (!generated.isMissingNode()) return generated.asText();
-            }
-        } catch (Exception e) {
-            log.warn("Failed to parse Watsonx generated_text", e);
-        }
-        return null;
-    }
-
     private String extractGeneratedTextChat(String responseBody) {
         try {
             JsonNode root = mapper.readTree(responseBody);
-            // Try a few likely shapes
-            JsonNode output = root.path("output");
-            if (!output.isMissingNode()) {
-                // Some variants: output_text array or choices/messages
-                JsonNode text = output.path("text");
-                if (text.isTextual()) return text.asText();
-                JsonNode choices = output.path("choices");
-                if (choices.isArray() && choices.size() > 0) {
-                    JsonNode message = choices.get(0).path("message");
-                    JsonNode content = message.path("content");
-                    if (content.isTextual()) return content.asText();
-                }
-            }
-            // Try a generic search for a generated text field
-            JsonNode results = root.path("results");
-            if (results.isArray() && results.size() > 0) {
-                JsonNode generated = results.get(0).path("generated_text");
-                if (!generated.isMissingNode()) return generated.asText();
+            JsonNode choices = root.path("choices");
+            if (choices.isArray() && choices.size() > 0) {
+                JsonNode message = choices.get(0).path("message");
+                JsonNode content = message.path("content");
+                if (content.isTextual()) return content.asText();
             }
         } catch (Exception e) {
-            log.warn("Failed to parse Watsonx chat response", e);
+            log.warn("Failed to parse OpenAI chat response", e);
         }
         return null;
     }
@@ -466,45 +394,6 @@ public class LlmService {
         }
     }
 
-    private String getBearerToken() {
-        long now = System.currentTimeMillis() / 1000L;
-        if (cachedBearer != null && now < cachedExpiryEpoch - 60) {
-            return cachedBearer;
-        }
-        String url = props.getIamTokenUrl();
-        String apiKey = props.getApiKey();
-        if (apiKey == null || apiKey.isBlank()) {
-            throw new IllegalStateException("llm.api-key not configured for Watsonx IAM");
-        }
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-        String body = "grant_type=urn:ibm:params:oauth:grant-type:apikey&apikey=" + java.net.URLEncoder.encode(apiKey, java.nio.charset.StandardCharsets.UTF_8);
-        HttpEntity<String> entity = new HttpEntity<>(body, headers);
-        ResponseEntity<String> resp;
-        try {
-            resp = restTemplate.exchange(url, HttpMethod.POST, entity, String.class);
-        } catch (org.springframework.web.client.RestClientResponseException e) {
-            log.error("IAM token HTTP error: status={}, body={}", e.getRawStatusCode(), e.getResponseBodyAsString());
-            throw new IllegalStateException("IAM HTTP error: " + e.getRawStatusCode(), e);
-        }
-        if (!resp.getStatusCode().is2xxSuccessful() || resp.getBody() == null) {
-            throw new IllegalStateException("IAM token request failed: " + resp.getStatusCode());
-        }
-        try {
-            JsonNode root = mapper.readTree(resp.getBody());
-            String token = root.path("access_token").asText(null);
-            int expiresIn = root.path("expires_in").asInt(3600);
-            if (token == null) throw new IllegalStateException("IAM token missing in response");
-            cachedBearer = token;
-            cachedExpiryEpoch = now + expiresIn;
-            return token;
-        } catch (Exception e) {
-            log.error("IAM token parse error", e);
-            throw new IllegalStateException("Failed to get IAM token", e);
-        }
-    }
-
     private void applyToSubDocument(SubDocument target, Map<String, Object> payload) {
         if (payload == null) return;
         if (target.getCategory() == null) {
@@ -554,8 +443,6 @@ public class LlmService {
         if (!base.endsWith("/") && !path.startsWith("/")) return base + "/" + path;
         return base + path;
     }
-
-    private String defaultPath(String p) { return (p == null || p.isBlank()) ? "/" : p; }
 
     // Defaults in case prompts are not provided
     private String defaultExtractionPrompt() {
