@@ -49,3 +49,4 @@ public class StapelProgressDto {
         this.pagesFailed = pagesFailed;
     }
 }
+

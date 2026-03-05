@@ -5,3 +5,4 @@ public enum SeiteStatus {
     EXTRACT_DONE,
     FAILED
 }
+

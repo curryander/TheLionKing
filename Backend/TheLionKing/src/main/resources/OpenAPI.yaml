@@ -259,6 +259,8 @@ components:
         pageId:
           type: string
           format: uuid
+        text:
+          type: string
         markdown:
           type: string
         doclingJson:
@@ -266,6 +268,7 @@ components:
           additionalProperties: true
       required:
         - pageId
+        - text
         - markdown
         - doclingJson
 

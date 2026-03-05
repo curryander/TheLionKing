@@ -114,6 +114,7 @@ public class ApiApiImpl implements ApiApi {
 
         PageExtractResponse response = new PageExtractResponse();
         response.setPageId(pageId);
+        response.setText(page.getExtractedText() == null ? "" : page.getExtractedText());
         response.setMarkdown(extrakt.getMarkdown());
         response.setDoclingJson(parseDoclingJson(extrakt.getDoclingJson()));
         return ResponseEntity.ok(response);
@@ -144,3 +145,4 @@ public class ApiApiImpl implements ApiApi {
         }
     }
 }
+

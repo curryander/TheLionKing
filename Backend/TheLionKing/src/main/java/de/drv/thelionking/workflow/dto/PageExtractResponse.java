@@ -33,3 +33,4 @@ public class PageExtractResponse {
         this.doclingJson = doclingJson;
     }
 }
+

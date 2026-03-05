@@ -49,6 +49,12 @@ public class Page {
 
     @Getter
     @Setter
+    @Lob
+    @Column(name = "extracted_text")
+    String extractedText;
+
+    @Getter
+    @Setter
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "dokumentenstapel_id", referencedColumnName = "id", nullable = false)
     Dokumentenstapel dokumentenstapel;
@@ -118,3 +124,4 @@ public class Page {
         }
     }
 }
+

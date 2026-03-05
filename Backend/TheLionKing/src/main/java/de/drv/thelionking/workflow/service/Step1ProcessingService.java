@@ -10,8 +10,8 @@ import de.drv.thelionking.data.seitenextrakt.SeitenExtraktRepository;
 import de.drv.thelionking.data.vorgang.Vorgang;
 import de.drv.thelionking.data.vorgang.VorgangRepository;
 import de.drv.thelionking.service.PdfService;
-import de.drv.thelionking.workflow.client.DoclingClient;
-import de.drv.thelionking.workflow.client.DoclingResult;
+import de.drv.thelionking.workflow.client.ExtractionClient;
+import de.drv.thelionking.workflow.client.ExtractionResult;
 import de.drv.thelionking.workflow.model.DokumentenstapelStatus;
 import de.drv.thelionking.workflow.model.SeiteStatus;
 import de.drv.thelionking.workflow.model.VorgangStatus;
@@ -39,7 +39,7 @@ public class Step1ProcessingService {
     private final VorgangRepository vorgangRepository;
     private final StorageService storageService;
     private final PdfService pdfService;
-    private final DoclingClient doclingClient;
+    private final ExtractionClient extractionClient;
     private final ObjectMapper objectMapper;
 
     public Step1ProcessingService(
@@ -49,7 +49,7 @@ public class Step1ProcessingService {
             VorgangRepository vorgangRepository,
             StorageService storageService,
             PdfService pdfService,
-            DoclingClient doclingClient,
+            ExtractionClient extractionClient,
             ObjectMapper objectMapper) {
         this.dokumentenstapelRepository = dokumentenstapelRepository;
         this.pageRepository = pageRepository;
@@ -57,8 +57,9 @@ public class Step1ProcessingService {
         this.vorgangRepository = vorgangRepository;
         this.storageService = storageService;
         this.pdfService = pdfService;
-        this.doclingClient = doclingClient;
+        this.extractionClient = extractionClient;
         this.objectMapper = objectMapper;
+        log.info("Extraction provider active: {}", extractionClient.getClass().getSimpleName());
     }
 
     @Async
@@ -102,21 +103,30 @@ public class Step1ProcessingService {
             for (Page page : pages) {
                 try {
                     Path pagePath = Path.of(page.getPdfPagePath());
-                    DoclingResult result = doclingClient.extract(pagePath);
+                    log.info("Starting extraction: stapelId={}, pageId={}, pageNo={}, provider={}",
+                            stapel.getId(), page.getId(), page.getPageNo(), extractionClient.getClass().getSimpleName());
+                    ExtractionResult result = extractionClient.extract(pagePath);
+                    String doclingJson = objectMapper.writeValueAsString(result.getDoclingJson());
 
                     SeitenExtrakt extrakt = seitenExtraktRepository.findBySeite_Id(page.getId()).orElseGet(SeitenExtrakt::new);
                     extrakt.setSeite(page);
                     extrakt.setMarkdown(result.getMarkdown());
-                    extrakt.setDoclingJson(objectMapper.writeValueAsString(result.getDoclingJson()));
+                    extrakt.setDoclingJson(doclingJson);
                     extrakt.setExtractedAt(Instant.now());
                     seitenExtraktRepository.save(extrakt);
 
+                    page.setExtractedText(result.getMarkdown());
                     page.setStatus(SeiteStatus.EXTRACT_DONE.name());
                     page.setErrorMessage(null);
+                    log.info("Extraction succeeded: stapelId={}, pageId={}, pageNo={}",
+                            stapel.getId(), page.getId(), page.getPageNo());
                 } catch (Exception ex) {
                     failed++;
+                    page.setExtractedText(null);
                     page.setStatus(SeiteStatus.FAILED.name());
                     page.setErrorMessage(ex.getMessage());
+                    log.error("Extraction failed: stapelId={}, pageId={}, pageNo={}, error={}",
+                            stapel.getId(), page.getId(), page.getPageNo(), ex.getMessage(), ex);
                 }
                 pageRepository.save(page);
             }
@@ -164,3 +174,4 @@ public class Step1ProcessingService {
         return pages;
     }
 }
+

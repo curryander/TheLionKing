@@ -10,3 +10,4 @@ import java.util.UUID;
 public interface SeitenExtraktRepository extends CrudRepository<SeitenExtrakt, UUID> {
     Optional<SeitenExtrakt> findBySeite_Id(UUID seiteId);
 }
+

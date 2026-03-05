@@ -10,3 +10,4 @@ import java.util.UUID;
 public interface DokumentenstapelRepository extends CrudRepository<Dokumentenstapel, UUID> {
     Optional<Dokumentenstapel> findFirstByVorgang_IdOrderByCreatedAtAsc(UUID vorgangId);
 }
+

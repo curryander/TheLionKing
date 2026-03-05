@@ -9,3 +9,4 @@ import java.util.UUID;
 public interface VorgangRepository extends CrudRepository<Vorgang, UUID> {
 
 }
+

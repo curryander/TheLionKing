@@ -13,3 +13,4 @@ public interface PageRepository extends CrudRepository<Page, UUID> {
     long countByDokumentenstapel_Id(UUID stapelId);
     long countByDokumentenstapel_IdAndStatus(UUID stapelId, String status);
 }
+

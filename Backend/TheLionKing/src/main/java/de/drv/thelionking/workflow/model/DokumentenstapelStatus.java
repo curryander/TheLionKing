@@ -9,3 +9,4 @@ public enum DokumentenstapelStatus {
     FAILED,
     PARTIAL_FAILED
 }
+

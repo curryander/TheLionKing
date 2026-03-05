@@ -45,3 +45,4 @@ public class SeitenExtrakt {
     @Column
     Instant extractedAt;
 }
+

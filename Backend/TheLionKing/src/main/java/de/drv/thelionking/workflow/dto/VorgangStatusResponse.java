@@ -60,3 +60,4 @@ public class VorgangStatusResponse {
         this.stapel = stapel;
     }
 }
+

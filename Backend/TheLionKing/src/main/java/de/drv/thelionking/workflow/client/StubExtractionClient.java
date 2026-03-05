@@ -10,24 +10,24 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Component
-@ConditionalOnProperty(name = "docling.client", havingValue = "stub")
-public class StubDoclingClient implements DoclingClient {
+@ConditionalOnProperty(name = "extraction.client", havingValue = "stub")
+public class StubExtractionClient implements ExtractionClient {
     private static final Pattern PAGE_PATTERN = Pattern.compile("page-(\\d+)\\.pdf$");
     private final ObjectMapper objectMapper;
 
-    public StubDoclingClient(ObjectMapper objectMapper) {
+    public StubExtractionClient(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
     }
 
     @Override
-    public DoclingResult extract(Path pdfPagePath) {
+    public ExtractionResult extract(Path pdfPagePath) {
         int pageNo = parsePageNo(pdfPagePath);
         String markdown = "## Extract for page " + pageNo + "\nStubbed extraction content.";
         ObjectNode json = objectMapper.createObjectNode();
         json.put("page", pageNo);
         json.put("source", "stub");
         json.put("pdfPagePath", pdfPagePath.toString());
-        return new DoclingResult(markdown, json);
+        return new ExtractionResult(markdown, json);
     }
 
     private int parsePageNo(Path pdfPagePath) {
@@ -39,3 +39,4 @@ public class StubDoclingClient implements DoclingClient {
         return 0;
     }
 }
+

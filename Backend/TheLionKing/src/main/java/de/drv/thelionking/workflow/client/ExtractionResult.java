@@ -2,11 +2,11 @@ package de.drv.thelionking.workflow.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-public class DoclingResult {
+public class ExtractionResult {
     private final String markdown;
     private final JsonNode doclingJson;
 
-    public DoclingResult(String markdown, JsonNode doclingJson) {
+    public ExtractionResult(String markdown, JsonNode doclingJson) {
         this.markdown = markdown;
         this.doclingJson = doclingJson;
     }
@@ -19,3 +19,4 @@ public class DoclingResult {
         return doclingJson;
     }
 }
+

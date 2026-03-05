@@ -6,3 +6,4 @@ public enum VorgangStatus {
     STEP1_DONE,
     FAILED
 }
+

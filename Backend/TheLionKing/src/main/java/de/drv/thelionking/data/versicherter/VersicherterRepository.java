@@ -10,3 +10,4 @@ import java.util.UUID;
 public interface VersicherterRepository extends CrudRepository<Versicherter, UUID> {
     Optional<Versicherter> findFirstByVsnr(String vsnr);
 }
+

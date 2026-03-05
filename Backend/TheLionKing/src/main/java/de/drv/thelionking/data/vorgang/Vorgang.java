@@ -121,3 +121,4 @@ public class Vorgang {
         updatedAt = Instant.now();
     }
 }
+
