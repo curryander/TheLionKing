@@ -47,10 +47,11 @@ public class ApiApiImpl implements ApiApi {
     @Override
     public ResponseEntity<CreateVorgangResponse> createVorgangWithUpload(
             MultipartFile file,
+            String vsnr,
             Boolean startProcessing,
             String stapelName) {
         boolean start = startProcessing == null || startProcessing;
-        var result = vorgangWorkflowService.createVorgangWithUpload(file, stapelName, start);
+        var result = vorgangWorkflowService.createVorgangWithUpload(file, stapelName, vsnr, start);
 
         CreateVorgangResponse response = new CreateVorgangResponse();
         response.setVorgangId(result.getVorgangId());

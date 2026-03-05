@@ -23,7 +23,7 @@ public class Vorgang {
     @Getter
     @Setter
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "versicherter_id")
+    @JoinColumn(name = "vsnr", referencedColumnName = "vsnr", nullable = false)
     Versicherter versicherter;
 
     @Getter
@@ -93,14 +93,6 @@ public class Vorgang {
             return stapel;
         }
         return dokumentenstapel.get(0);
-    }
-
-    public Versicherter getOrCreateVersicherter() {
-        if (versicherter == null) {
-            versicherter = new Versicherter();
-            versicherter.getVorgaenge().add(this);
-        }
-        return versicherter;
     }
 
     public byte[] getMultiPageDocument() {

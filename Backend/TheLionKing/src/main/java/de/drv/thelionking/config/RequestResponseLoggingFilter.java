@@ -51,18 +51,22 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
 
     private void logRequest(ContentCachingRequestWrapper request) {
         String path = request.getRequestURI() + (request.getQueryString() == null ? "" : "?" + request.getQueryString());
-        String body = getPayload(request.getContentType(), request.getContentAsByteArray(), request.getCharacterEncoding());
+        String body = getPayload(path, request.getContentType(), request.getContentAsByteArray(), request.getCharacterEncoding());
         log.info("HTTP REQUEST {} {} | body={}", request.getMethod(), path, body);
     }
 
     private void logResponse(ContentCachingRequestWrapper request, ContentCachingResponseWrapper response, long durationMs) {
         String path = request.getRequestURI() + (request.getQueryString() == null ? "" : "?" + request.getQueryString());
-        String body = getPayload(response.getContentType(), response.getContentAsByteArray(), response.getCharacterEncoding());
+        String body = getPayload(path, response.getContentType(), response.getContentAsByteArray(), response.getCharacterEncoding());
         log.info("HTTP RESPONSE {} {} | status={} | durationMs={} | body={}",
                 request.getMethod(), path, response.getStatus(), durationMs, body);
     }
 
-    private String getPayload(String contentType, byte[] content, String characterEncoding) {
+    private String getPayload(String path, String contentType, byte[] content, String characterEncoding) {
+        if (isExtractEndpoint(path)) {
+            return "<redacted>";
+        }
+
         if (content == null || content.length == 0) {
             return "<empty>";
         }
@@ -78,6 +82,10 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
             return payload.substring(0, MAX_PAYLOAD_LENGTH) + "...<truncated>";
         }
         return payload;
+    }
+
+    private boolean isExtractEndpoint(String path) {
+        return path != null && path.contains("/api/v1/pages/") && path.contains("/extract");
     }
 
     private MediaType parseMediaType(String contentType) {

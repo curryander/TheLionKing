@@ -23,11 +23,6 @@ public class Versicherter {
     @Getter
     @Setter
     @Column
-    String versichertennummer;
-
-    @Getter
-    @Setter
-    @Column
     String vorname;
 
     @Getter
@@ -37,7 +32,7 @@ public class Versicherter {
 
     @Getter
     @Setter
-    @Column
+    @Column(nullable = false, unique = true)
     String vsnr;
 
     @Getter

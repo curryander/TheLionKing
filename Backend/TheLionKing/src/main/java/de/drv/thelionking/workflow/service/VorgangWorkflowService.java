@@ -4,6 +4,8 @@ import de.drv.thelionking.data.dokumentenstapel.Dokumentenstapel;
 import de.drv.thelionking.data.dokumentenstapel.DokumentenstapelRepository;
 import de.drv.thelionking.data.page.Page;
 import de.drv.thelionking.data.page.PageRepository;
+import de.drv.thelionking.data.versicherter.Versicherter;
+import de.drv.thelionking.data.versicherter.VersicherterRepository;
 import de.drv.thelionking.data.vorgang.Vorgang;
 import de.drv.thelionking.data.vorgang.VorgangRepository;
 import de.drv.thelionking.workflow.dto.CreateVorgangResult;
@@ -32,6 +34,7 @@ public class VorgangWorkflowService {
     private static final Logger log = LoggerFactory.getLogger(VorgangWorkflowService.class);
 
     private final VorgangRepository vorgangRepository;
+    private final VersicherterRepository versicherterRepository;
     private final DokumentenstapelRepository dokumentenstapelRepository;
     private final PageRepository pageRepository;
     private final StorageService storageService;
@@ -39,11 +42,13 @@ public class VorgangWorkflowService {
 
     public VorgangWorkflowService(
             VorgangRepository vorgangRepository,
+            VersicherterRepository versicherterRepository,
             DokumentenstapelRepository dokumentenstapelRepository,
             PageRepository pageRepository,
             StorageService storageService,
             Step1ProcessingService step1ProcessingService) {
         this.vorgangRepository = vorgangRepository;
+        this.versicherterRepository = versicherterRepository;
         this.dokumentenstapelRepository = dokumentenstapelRepository;
         this.pageRepository = pageRepository;
         this.storageService = storageService;
@@ -51,9 +56,16 @@ public class VorgangWorkflowService {
     }
 
     @Transactional
-    public CreateVorgangResult createVorgangWithUpload(MultipartFile pdf, String stapelName, boolean startProcessing) {
+    public CreateVorgangResult createVorgangWithUpload(
+            MultipartFile pdf,
+            String stapelName,
+            String vsnr,
+            boolean startProcessing) {
         if (pdf == null || pdf.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "file is required");
+        }
+        if (vsnr == null || vsnr.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "vsnr is required");
         }
         validatePdfUpload(pdf);
 
@@ -67,7 +79,11 @@ public class VorgangWorkflowService {
         Vorgang vorgang = new Vorgang();
         vorgang.setStatus(startProcessing ? VorgangStatus.PROCESSING_STEP1.name() : VorgangStatus.NEW.name());
         vorgang.setProgress(0);
+        Versicherter versicherter = getOrCreateVersicherter(vsnr.trim());
+        vorgang.setVersicherter(versicherter);
         vorgang = vorgangRepository.save(vorgang);
+        log.info("Vorgang persisted with Versicherter: vorgangId={}, versicherterId={}, vsnr={}",
+                vorgang.getId(), versicherter.getId(), versicherter.getVsnr());
 
         Dokumentenstapel stapel = new Dokumentenstapel();
         stapel.setVorgang(vorgang);
@@ -95,6 +111,18 @@ public class VorgangWorkflowService {
         }
 
         return new CreateVorgangResult(vorgang.getId(), stapel.getId());
+    }
+
+    private Versicherter getOrCreateVersicherter(String vsnr) {
+        return versicherterRepository.findFirstByVsnr(vsnr)
+                .orElseGet(() -> {
+                    Versicherter versicherter = new Versicherter();
+                    versicherter.setVsnr(vsnr);
+                    Versicherter saved = versicherterRepository.save(versicherter);
+                    log.info("Versicherter persisted: versicherterId={}, vsnr={}",
+                            saved.getId(), saved.getVsnr());
+                    return saved;
+                });
     }
 
     private void validatePdfUpload(MultipartFile pdf) {

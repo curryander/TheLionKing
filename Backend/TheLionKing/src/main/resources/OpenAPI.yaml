@@ -29,11 +29,14 @@ paths:
               type: object
               required:
                 - file
+                - vsnr
               properties:
                 file:
                   type: string
                   format: binary
                 stapelName:
+                  type: string
+                vsnr:
                   type: string
       responses:
         "201":
