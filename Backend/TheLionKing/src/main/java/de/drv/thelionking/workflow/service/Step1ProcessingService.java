@@ -15,6 +15,8 @@ import de.drv.thelionking.workflow.client.DoclingResult;
 import de.drv.thelionking.workflow.model.DokumentenstapelStatus;
 import de.drv.thelionking.workflow.model.SeiteStatus;
 import de.drv.thelionking.workflow.model.VorgangStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -29,6 +31,8 @@ import java.util.UUID;
 
 @Service
 public class Step1ProcessingService {
+    private static final Logger log = LoggerFactory.getLogger(Step1ProcessingService.class);
+
     private final DokumentenstapelRepository dokumentenstapelRepository;
     private final PageRepository pageRepository;
     private final SeitenExtraktRepository seitenExtraktRepository;
@@ -58,12 +62,12 @@ public class Step1ProcessingService {
     }
 
     @Async
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void processStep1Async(UUID stapelId) {
         processStep1(stapelId);
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void processStep1(UUID stapelId) {
+    void processStep1(UUID stapelId) {
         Dokumentenstapel stapel = dokumentenstapelRepository.findById(stapelId).orElse(null);
         if (stapel == null) {
             return;
@@ -137,12 +141,14 @@ public class Step1ProcessingService {
     private List<Page> createPagesBySplit(Dokumentenstapel stapel) throws IOException {
         List<Page> existing = pageRepository.findAllByDokumentenstapel_IdOrderByPageNoAsc(stapel.getId());
         if (!existing.isEmpty()) {
+            log.info("Pages already present for stapelId={}, count={}", stapel.getId(), existing.size());
             return existing;
         }
 
         List<Page> pages = new ArrayList<>();
         byte[] original = stapel.getUploadPdf() != null ? stapel.getUploadPdf() : new byte[0];
         List<byte[]> splitPages = pdfService.splitToPages(original);
+        log.info("PDF split completed: stapelId={}, pageCount={}", stapel.getId(), splitPages.size());
         for (int i = 1; i <= splitPages.size(); i++) {
             byte[] pageBytes = splitPages.get(i - 1);
             Path pagePath = storageService.savePagePdf(stapel.getId(), i, pageBytes);
@@ -151,6 +157,8 @@ public class Step1ProcessingService {
             page.setStatus(SeiteStatus.CREATED.name());
             page.setErrorMessage(null);
             page = pageRepository.save(page);
+            log.info("Page persisted: stapelId={}, pageId={}, pageNo={}, bytes={}, pdfPagePath={}",
+                    stapel.getId(), page.getId(), page.getPageNo(), pageBytes.length, page.getPdfPagePath());
             pages.add(page);
         }
         return pages;

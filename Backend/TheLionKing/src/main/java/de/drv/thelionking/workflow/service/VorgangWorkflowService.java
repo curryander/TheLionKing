@@ -12,6 +12,8 @@ import de.drv.thelionking.workflow.dto.VorgangStatusResponse;
 import de.drv.thelionking.workflow.model.DokumentenstapelStatus;
 import de.drv.thelionking.workflow.model.SeiteStatus;
 import de.drv.thelionking.workflow.model.VorgangStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +29,8 @@ import java.util.UUID;
 
 @Service
 public class VorgangWorkflowService {
+    private static final Logger log = LoggerFactory.getLogger(VorgangWorkflowService.class);
+
     private final VorgangRepository vorgangRepository;
     private final DokumentenstapelRepository dokumentenstapelRepository;
     private final PageRepository pageRepository;
@@ -73,11 +77,15 @@ public class VorgangWorkflowService {
         stapel.setUploadFilename(pdf.getOriginalFilename());
         stapel.setUploadPdf(bytes);
         stapel = dokumentenstapelRepository.save(stapel);
+        log.info("Dokumentenstapel persisted: stapelId={}, vorgangId={}, originalFilename={}, bytes={}",
+                stapel.getId(), vorgang.getId(), stapel.getOriginalFilename(), bytes.length);
 
         try {
             String storageRef = storageService.saveOriginalPdf(stapel.getId(), bytes).toString();
             stapel.setPdfStorageRef(storageRef);
             stapel = dokumentenstapelRepository.save(stapel);
+            log.info("Dokumentenstapel storage reference persisted: stapelId={}, pdfStorageRef={}",
+                    stapel.getId(), stapel.getPdfStorageRef());
         } catch (IOException e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Could not persist uploaded PDF");
         }
