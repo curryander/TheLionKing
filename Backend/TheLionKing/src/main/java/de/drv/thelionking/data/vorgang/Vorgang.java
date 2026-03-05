@@ -29,11 +29,6 @@ public class Vorgang {
     @Getter
     @Setter
     @Column
-    String vorgangsnummer;
-
-    @Getter
-    @Setter
-    @Column
     String status;
 
     @Getter
