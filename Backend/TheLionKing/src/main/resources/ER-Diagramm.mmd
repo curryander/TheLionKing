@@ -1,0 +1,97 @@
+erDiagram
+
+  VERSICHERTER ||--o{ VORGANG : hat
+  VORGANG      ||--o{ DOKUMENTENSTAPEL : umfasst
+
+  DOKUMENTENSTAPEL ||--o{ SEITE : wird_zerlegt_in
+  DOKUMENTENSTAPEL ||--o{ DOKUMENT : ergibt_spaeter
+
+  %% Seiten werden per LLM einem Dokument zugeordnet:
+  DOKUMENT ||--o{ DOKUMENT_SEITE : enthaelt
+  SEITE    ||--o{ DOKUMENT_SEITE : ist_zugeordnet
+
+  %% Docling-Extraktion pro Seite
+  SEITE ||--o| SEITEN_EXTRAKT : hat
+
+  %% RAG Chunks aus Extrakten (meist Markdown/Text), ohne Embeddings
+  DOKUMENT ||--o{ RAG_CHUNK : liefert_chunks
+
+
+  VERSICHERTER {
+    uuid id PK
+    string versichertennummer "optional/extern"
+    string vorname "optional"
+    string nachname "optional"
+    string vsnr "optional"
+    date geburtsdatum "optional"
+    datetime created_at
+  }
+
+  VORGANG {
+    uuid id PK
+    uuid versicherter_id FK
+    string vorgangsnummer "fachliche Nummer"
+    string status "z.B. UPLOADED/PROCESSED/REVIEWED/DONE"
+    datetime created_at
+    datetime updated_at
+  }
+
+  DOKUMENTENSTAPEL {
+    uuid id PK
+    uuid vorgang_id FK
+    string stapel_name
+    string upload_filename
+    int seiten_anzahl "optional"
+    string status "z.B. UPLOADED/SPLIT/CLASSIFIED"
+    datetime created_at
+  }
+
+  SEITE {
+    uuid id PK
+    uuid dokumentenstapel_id FK
+    int page_no "1..n innerhalb Stapel"
+    string pdf_page_path "oder blob_ref"
+    string sha256 "optional"
+    datetime created_at
+  }
+
+  %% Ergebnis der LLM-Klassifikation: Dokumente innerhalb eines Stapels
+  DOKUMENT {
+    uuid id PK
+    uuid dokumentenstapel_id FK
+    int document_no "1..k innerhalb Stapel"
+    string dokument_typ "optional (LLM/Regelwerk)"
+    float confidence "optional"
+    json erkannte_entitaeten "flexible Zusatzdaten"
+    datetime created_at
+  }
+
+  %% Join-Tabelle: welche Seite gehört zu welchem Dokument
+  DOKUMENT_SEITE {
+    uuid dokument_id FK
+    uuid seite_id FK
+    int position "Reihenfolge innerhalb Dokument"
+    string assigned_by "LLM/RULES/MANUAL"
+    float confidence "optional"
+    datetime assigned_at
+  }
+
+  %% Docling Output pro Seite (1:0..1), je nach Prozessstand
+  SEITEN_EXTRAKT {
+    uuid id PK
+    uuid seite_id FK
+    string markdown "oder markdown_path"
+    json docling_json "oder json_path"
+    string ocr_engine "optional"
+    datetime extracted_at
+  }
+
+  %% RAG Chunks (aus Dokument oder aus Extrakten abgeleitet)
+  RAG_CHUNK {
+    uuid id PK
+    uuid dokument_id FK
+    int chunk_no
+    string text "chunk text (md/plain)"
+    json metadata "z.B. page ranges, headings"
+    datetime created_at
+  }

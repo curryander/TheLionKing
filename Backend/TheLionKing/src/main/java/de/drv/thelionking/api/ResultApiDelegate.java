@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.context.request.NativeWebRequest;
 
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Application-owned Result API delegate. Shadows the generated file to
@@ -20,8 +21,7 @@ public interface ResultApiDelegate {
     /**
      * Handle GET /result/{id}.
      */
-    default ResponseEntity<ResultResponse> getResult(String id) {
+    default ResponseEntity<ResultResponse> getResult(UUID id) {
         return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
     }
 }
-

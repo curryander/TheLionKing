@@ -29,14 +29,17 @@ public class ResultApiDelegateImpl implements ResultApiDelegate {
 
     @Override
     @Transactional(readOnly = true)
-    public ResponseEntity<ResultResponse> getResult(String id) {
+    public ResponseEntity<ResultResponse> getResult(UUID id) {
         log.info("GET /result/{}", id);
-        if (id == null || id.isEmpty()) {
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        if (id == null) {
+            ApiError err = new ApiError();
+            err.setCode(ApiError.CodeEnum.BAD_REQUEST);
+            err.setMessage("Missing or invalid id");
+            ResponseEntity raw = ResponseEntity.status(HttpStatus.BAD_REQUEST).body(err);
+            return (ResponseEntity<ResultResponse>) raw;
         }
         ResultResponse resp = new ResultResponse();
-        UUID uuid = UUID.fromString(id);
-        Optional<Vorgang> vorgang = this.vorgangRepository.findById(uuid);
+        Optional<Vorgang> vorgang = this.vorgangRepository.findById(id);
         if(vorgang.isEmpty()) {
             log.info("Vorgang {} not found", id);
             ApiError err = new ApiError();
@@ -49,8 +52,7 @@ public class ResultApiDelegateImpl implements ResultApiDelegate {
         if(vorgang.get().getErrorCode() != null){
             ApiError err = new ApiError();
             boolean server = vorgang.get().getErrorCode().startsWith("SERVER_");
-            // keep enum compatible until models are regenerated, HTTP status conveys server error
-            err.setCode(ApiError.CodeEnum.BAD_REQUEST);
+            err.setCode(server ? ApiError.CodeEnum.SERVER_ERROR : ApiError.CodeEnum.BAD_REQUEST);
             err.setMessage(vorgang.get().getErrorMessage() != null ? vorgang.get().getErrorMessage() : vorgang.get().getErrorCode());
             ResponseEntity raw = ResponseEntity.status(server? HttpStatus.INTERNAL_SERVER_ERROR : HttpStatus.BAD_REQUEST).body(err);
             return (ResponseEntity<ResultResponse>) raw;

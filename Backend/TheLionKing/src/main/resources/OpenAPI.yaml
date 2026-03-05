@@ -1,0 +1,301 @@
+openapi: 3.0.0
+info:
+  title: IBMHackaton-TheLionKing
+  description: "API fuer Dokumentenstapel-Workflow (Step 1: Split + Extraktion)"
+  version: 1.1.0
+servers:
+  - url: http://api.example.com
+    description: Default server
+
+paths:
+  /api/v1/vorgaenge:
+    post:
+      summary: Legt einen neuen Vorgang mit Dokumentenstapel an
+      description: Erstellt Vorgang plus Dokumentenstapel und speichert das hochgeladene PDF. Optional wird Step1 asynchron gestartet.
+      operationId: createVorgangWithUpload
+      parameters:
+        - name: startProcessing
+          in: query
+          required: false
+          description: Wenn true, startet Step1 direkt asynchron.
+          schema:
+            type: boolean
+            default: true
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                stapelName:
+                  type: string
+      responses:
+        "201":
+          description: Vorgang und Dokumentenstapel angelegt, Verarbeitung nicht gestartet.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateVorgangResponse"
+        "202":
+          description: Vorgang und Dokumentenstapel angelegt, Verarbeitung laeuft.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateVorgangResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          description: Interner Serverfehler.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /api/v1/vorgaenge/{vorgangId}:
+    get:
+      summary: Liefert Status und Fortschritt eines Vorgangs
+      operationId: getVorgangWorkflowStatus
+      parameters:
+        - $ref: "#/components/parameters/VorgangId"
+      responses:
+        "200":
+          description: Status gefunden.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VorgangWorkflowStatusResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/v1/dokumentenstapel/{stapelId}/pages:
+    get:
+      summary: Liefert alle Seiten eines Dokumentenstapels
+      operationId: getDokumentenstapelPages
+      parameters:
+        - $ref: "#/components/parameters/StapelId"
+      responses:
+        "200":
+          description: Seitenliste.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PageInfo"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/v1/pages/{pageId}/extract:
+    get:
+      summary: Liefert Extrakt einer Seite
+      operationId: getPageExtract
+      parameters:
+        - $ref: "#/components/parameters/PageId"
+      responses:
+        "200":
+          description: Extrakt gefunden.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageExtractResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/v1/dokumentenstapel/{stapelId}/split-and-extract:
+    post:
+      summary: Startet Step1 manuell fuer einen Dokumentenstapel
+      operationId: triggerDokumentenstapelStep1
+      parameters:
+        - $ref: "#/components/parameters/StapelId"
+      responses:
+        "202":
+          description: Verarbeitung wurde gestartet.
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Status erlaubt keinen Trigger.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+components:
+  parameters:
+    VorgangId:
+      name: vorgangId
+      in: path
+      required: true
+      description: Die ID des Vorgangs.
+      schema:
+        type: string
+        format: uuid
+
+    StapelId:
+      name: stapelId
+      in: path
+      required: true
+      description: Die ID des Dokumentenstapels.
+      schema:
+        type: string
+        format: uuid
+
+    PageId:
+      name: pageId
+      in: path
+      required: true
+      description: Die ID der Seite.
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    CreateVorgangResponse:
+      type: object
+      properties:
+        vorgangId:
+          type: string
+          format: uuid
+        stapelId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          nullable: true
+          example: UPLOADED
+        processingStatus:
+          type: string
+          nullable: true
+          example: RUNNING
+      required:
+        - vorgangId
+        - stapelId
+
+    StapelProgress:
+      type: object
+      properties:
+        stapelId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          example: EXTRACTING
+        pagesTotal:
+          type: integer
+          format: int64
+        pagesDone:
+          type: integer
+          format: int64
+        pagesFailed:
+          type: integer
+          format: int64
+      required:
+        - stapelId
+        - status
+        - pagesTotal
+        - pagesDone
+        - pagesFailed
+
+    VorgangWorkflowStatusResponse:
+      type: object
+      properties:
+        vorgangId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          example: PROCESSING_STEP1
+        pagesTotal:
+          type: integer
+          format: int64
+        pagesDone:
+          type: integer
+          format: int64
+        pagesFailed:
+          type: integer
+          format: int64
+        stapel:
+          type: array
+          items:
+            $ref: "#/components/schemas/StapelProgress"
+      required:
+        - vorgangId
+        - status
+        - pagesTotal
+        - pagesDone
+        - pagesFailed
+        - stapel
+
+    PageInfo:
+      type: object
+      properties:
+        pageId:
+          type: string
+          format: uuid
+        pageNo:
+          type: integer
+        status:
+          type: string
+          example: EXTRACT_DONE
+        errorMessage:
+          type: string
+          nullable: true
+      required:
+        - pageId
+        - pageNo
+        - status
+
+    PageExtractResponse:
+      type: object
+      properties:
+        pageId:
+          type: string
+          format: uuid
+        markdown:
+          type: string
+        doclingJson:
+          type: object
+          additionalProperties: true
+      required:
+        - pageId
+        - markdown
+        - doclingJson
+
+    ApiError:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Fehlercode
+          enum:
+            - BAD_REQUEST
+            - NOT_FOUND
+            - SERVER_ERROR
+          example: BAD_REQUEST
+        message:
+          type: string
+          description: Menschlich lesbare Beschreibung.
+          example: Anfrageparameter fehlen oder sind ungueltig.
+      required:
+        - code
+        - message
+
+  responses:
+    BadRequest:
+      description: Anfrage ist fehlerhaft.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
+
+    NotFound:
+      description: Ressource wurde nicht gefunden.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"

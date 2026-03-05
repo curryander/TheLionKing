@@ -2,6 +2,7 @@ package de.drv.thelionking.service;
 
 import de.drv.thelionking.data.document.Document;
 import de.drv.thelionking.data.document.DocumentRepository;
+import de.drv.thelionking.data.dokumentenstapel.Dokumentenstapel;
 import de.drv.thelionking.data.vorgang.Vorgang;
 import de.drv.thelionking.data.vorgang.VorgangRepository;
 import de.drv.thelionking.data.page.Page;
@@ -50,6 +51,7 @@ public class ProcessingService {
             resultJsonExportService.exportDoclingDocumentResult(vorgang, doclingPages);
             continueWithLlmInternal(vorgang);
             vorgang.setProgress(100);
+            vorgang.setStatus("DONE");
             log.info("Process finished for Vorgang {} with progress {}%", vorgang.getId(), vorgang.getProgress());
             return vorgangRepository.save(vorgang);
         } catch (Exception e) {
@@ -57,6 +59,7 @@ public class ProcessingService {
             vorgang.setErrorCode("SERVER_ERROR");
             vorgang.setErrorMessage(e.getMessage());
             vorgang.setProgress(100);
+            vorgang.setStatus("DONE");
             return vorgangRepository.save(vorgang);
         }
     }
@@ -68,12 +71,14 @@ public class ProcessingService {
             List<Page> doclingPages = processDoclingOnlyInternal(vorgang);
             resultJsonExportService.exportDoclingPreview(vorgang, doclingPages);
             resultJsonExportService.exportDoclingDocumentResult(vorgang, doclingPages);
+            vorgang.setStatus("CLASSIFIED");
             return vorgangRepository.save(vorgang);
         } catch (Exception e) {
             log.error("Docling preview failed for Vorgang {}", vorgang.getId(), e);
             vorgang.setErrorCode("SERVER_ERROR");
             vorgang.setErrorMessage(e.getMessage());
             vorgang.setProgress(100);
+            vorgang.setStatus("DONE");
             return vorgangRepository.save(vorgang);
         }
     }
@@ -84,28 +89,34 @@ public class ProcessingService {
             log.info("Continue with LLM for Vorgang {}", vorgang.getId());
             continueWithLlmInternal(vorgang);
             vorgang.setProgress(100);
+            vorgang.setStatus("DONE");
             return vorgangRepository.save(vorgang);
         } catch (Exception e) {
             log.error("LLM continuation failed for Vorgang {}", vorgang.getId(), e);
             vorgang.setErrorCode("SERVER_ERROR");
             vorgang.setErrorMessage(e.getMessage());
             vorgang.setProgress(100);
+            vorgang.setStatus("DONE");
             return vorgangRepository.save(vorgang);
         }
     }
 
     private List<Page> processDoclingOnlyInternal(Vorgang vorgang) throws IOException {
-        List<Page> pages = pageRepository.findAllByVorgang_IdOrderByPageIndexAsc(vorgang.getId());
+        List<Page> pages = pageRepository.findAllByDokumentenstapel_Vorgang_IdOrderByPageNoAsc(vorgang.getId());
         if (pages.isEmpty()) {
+            Dokumentenstapel stapel = vorgang.getOrCreatePrimaryStapel();
             List<byte[]> pageBytes = pdfService.splitToPages(vorgang.getMultiPageDocument());
             log.info("Split original PDF into {} pages", pageBytes.size());
             int idx = 0;
             for (byte[] pb : pageBytes) {
-                Page p = new Page(idx++, pb, vorgang);
+                Page p = new Page(idx++, pb, stapel);
                 p = pageRepository.save(p);
                 pages.add(p);
                 log.info("Persisted Page index={} id={}", p.getPageIndex(), p.getId());
             }
+            stapel.setSeitenAnzahl(pages.size());
+            vorgang.setStatus("SPLIT");
+            vorgangRepository.save(vorgang);
         } else {
             log.info("Reusing {} existing pages for Vorgang {}", pages.size(), vorgang.getId());
         }
@@ -150,12 +161,13 @@ public class ProcessingService {
             log.info("Progress after OCR page {}: {}%", p.getPageIndex(), vorgang.getProgress());
         }
         vorgang.setProgress(Math.max(vorgang.getProgress(), 60));
+        vorgang.setStatus("CLASSIFIED");
         vorgangRepository.save(vorgang);
-        return pageRepository.findAllByVorgang_IdOrderByPageIndexAsc(vorgang.getId());
+        return pageRepository.findAllByDokumentenstapel_Vorgang_IdOrderByPageNoAsc(vorgang.getId());
     }
 
     private void continueWithLlmInternal(Vorgang vorgang) throws IOException {
-            List<Page> pages = pageRepository.findAllByVorgang_IdOrderByPageIndexAsc(vorgang.getId());
+            List<Page> pages = pageRepository.findAllByDokumentenstapel_Vorgang_IdOrderByPageNoAsc(vorgang.getId());
             if (pages.isEmpty()) {
                 pages = processDoclingOnlyInternal(vorgang);
             }
@@ -206,7 +218,8 @@ public class ProcessingService {
                 byte[] merged = pdfService.mergePages(toMerge);
                 log.info("Merged PDF size for group #{}: {} bytes", groupNo + 1, merged != null ? merged.length : 0);
                 Document entity = new Document(merged);
-                entity.setVorgang(vorgang);
+                entity.setDokumentenstapel(vorgang.getOrCreatePrimaryStapel());
+                entity.setDocumentNo(groupNo + 1);
 
                 var fields = llmService.extractDocumentPropertiesMerged(doclingMarkdowns);
                 log.info("Extraction fields for group #{}: {}", groupNo + 1, fields);
@@ -263,14 +276,16 @@ public class ProcessingService {
             var aggregated = llmService.aggregateVorgangFields(subDocs);
             if (aggregated != null) {
                 log.info("Aggregation result: {}", aggregated);
-                Object fn = aggregated.get("firstName"); if (fn instanceof String s) vorgang.setFirstName(s);
-                Object sn = aggregated.get("surname"); if (sn instanceof String s) vorgang.setSurname(s);
-                Object vs = aggregated.get("vsnr"); if (vs instanceof String s) vorgang.setVsnr(s);
+                var versicherter = vorgang.getOrCreateVersicherter();
+                Object fn = aggregated.get("firstName"); if (fn instanceof String s) versicherter.setVorname(s);
+                Object sn = aggregated.get("surname"); if (sn instanceof String s) versicherter.setNachname(s);
+                Object vs = aggregated.get("vsnr"); if (vs instanceof String s) versicherter.setVsnr(s);
                 Object bd = aggregated.get("birthDate"); if (bd instanceof String s) {
-                    try { vorgang.setBirthDate(LocalDate.parse(s)); } catch (Exception ignored) {}
+                    try { versicherter.setGeburtsdatum(LocalDate.parse(s)); } catch (Exception ignored) {}
                 }
                 Object sum = aggregated.get("summary"); if (sum instanceof String s) vorgang.setSummary(s);
             }
+            vorgang.setStatus("REVIEWED");
     }
 
     @org.springframework.scheduling.annotation.Async
@@ -284,6 +299,7 @@ public class ProcessingService {
                 v.setErrorCode("SERVER_ERROR");
                 v.setErrorMessage(e.getMessage());
                 v.setProgress(100);
+                v.setStatus("DONE");
                 vorgangRepository.save(v);
             }
         });
@@ -300,6 +316,7 @@ public class ProcessingService {
                 v.setErrorCode("SERVER_ERROR");
                 v.setErrorMessage(e.getMessage());
                 v.setProgress(100);
+                v.setStatus("DONE");
                 vorgangRepository.save(v);
             }
         });
@@ -316,6 +333,7 @@ public class ProcessingService {
                 v.setErrorCode("SERVER_ERROR");
                 v.setErrorMessage(e.getMessage());
                 v.setProgress(100);
+                v.setStatus("DONE");
                 vorgangRepository.save(v);
             }
         });
@@ -345,4 +363,6 @@ public class ProcessingService {
         return s;
     }
 }
+
+
 

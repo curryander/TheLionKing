@@ -8,6 +8,8 @@ import java.util.UUID;
 
 @Repository
 public interface PageRepository extends CrudRepository<Page, UUID> {
-    List<Page> findAllByVorgang_IdOrderByPageIndexAsc(UUID vorgangId);
+    List<Page> findAllByDokumentenstapel_Vorgang_IdOrderByPageNoAsc(UUID vorgangId);
+    List<Page> findAllByDokumentenstapel_IdOrderByPageNoAsc(UUID stapelId);
+    long countByDokumentenstapel_Id(UUID stapelId);
+    long countByDokumentenstapel_IdAndStatus(UUID stapelId, String status);
 }
-

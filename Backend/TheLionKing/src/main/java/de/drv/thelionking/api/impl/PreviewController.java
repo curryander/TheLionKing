@@ -61,7 +61,7 @@ public class PreviewController {
             return ResponseEntity.status(HttpStatus.ACCEPTED).body(Map.of("progress", vorgang.getProgress()));
         }
 
-        List<Page> pages = pageRepository.findAllByVorgang_IdOrderByPageIndexAsc(uuid);
+        List<Page> pages = pageRepository.findAllByDokumentenstapel_Vorgang_IdOrderByPageNoAsc(uuid);
         List<Map<String, Object>> previewPages = new ArrayList<>();
         for (Page p : pages) {
             Map<String, Object> entry = new HashMap<>();
