@@ -2,6 +2,7 @@ package de.drv.thelionking.workflow.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.nio.file.Path;
@@ -9,6 +10,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Component
+@ConditionalOnProperty(name = "docling.client", havingValue = "stub")
 public class StubDoclingClient implements DoclingClient {
     private static final Pattern PAGE_PATTERN = Pattern.compile("page-(\\d+)\\.pdf$");
     private final ObjectMapper objectMapper;

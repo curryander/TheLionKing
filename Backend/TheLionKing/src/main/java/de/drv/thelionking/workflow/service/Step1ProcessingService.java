@@ -17,6 +17,7 @@ import de.drv.thelionking.workflow.model.SeiteStatus;
 import de.drv.thelionking.workflow.model.VorgangStatus;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
@@ -57,7 +58,11 @@ public class Step1ProcessingService {
     }
 
     @Async
-    @Transactional
+    public void processStep1Async(UUID stapelId) {
+        processStep1(stapelId);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void processStep1(UUID stapelId) {
         Dokumentenstapel stapel = dokumentenstapelRepository.findById(stapelId).orElse(null);
         if (stapel == null) {
@@ -80,7 +85,7 @@ public class Step1ProcessingService {
             stapel.setStatus(DokumentenstapelStatus.SPLITTING.name());
             dokumentenstapelRepository.save(stapel);
 
-            List<Page> pages = createPagesByStubSplit(stapel);
+            List<Page> pages = createPagesBySplit(stapel);
 
             stapel.setSeitenAnzahl(pages.size());
             stapel.setStatus(DokumentenstapelStatus.SPLIT_DONE.name());
@@ -129,7 +134,7 @@ public class Step1ProcessingService {
         }
     }
 
-    private List<Page> createPagesByStubSplit(Dokumentenstapel stapel) throws IOException {
+    private List<Page> createPagesBySplit(Dokumentenstapel stapel) throws IOException {
         List<Page> existing = pageRepository.findAllByDokumentenstapel_IdOrderByPageNoAsc(stapel.getId());
         if (!existing.isEmpty()) {
             return existing;
@@ -141,7 +146,7 @@ public class Step1ProcessingService {
         for (int i = 1; i <= splitPages.size(); i++) {
             byte[] pageBytes = splitPages.get(i - 1);
             Path pagePath = storageService.savePagePdf(stapel.getId(), i, pageBytes);
-            Page page = new Page(i, null, stapel);
+            Page page = new Page(i, pageBytes, stapel);
             page.setPdfPagePath(pagePath.toString());
             page.setStatus(SeiteStatus.CREATED.name());
             page.setErrorMessage(null);

@@ -15,6 +15,8 @@ import de.drv.thelionking.workflow.model.VorgangStatus;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -81,7 +83,7 @@ public class VorgangWorkflowService {
         }
 
         if (startProcessing) {
-            step1ProcessingService.processStep1(stapel.getId());
+            scheduleStep1AfterCommit(stapel.getId());
         }
 
         return new CreateVorgangResult(vorgang.getId(), stapel.getId());
@@ -164,7 +166,7 @@ public class VorgangWorkflowService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Dokumentenstapel status does not allow step1 trigger");
         }
 
-        step1ProcessingService.processStep1(stapelId);
+        scheduleStep1AfterCommit(stapelId);
     }
 
     @Transactional(readOnly = true)
@@ -173,5 +175,18 @@ public class VorgangWorkflowService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Dokumentenstapel not found");
         }
         return pageRepository.findAllByDokumentenstapel_IdOrderByPageNoAsc(stapelId);
+    }
+
+    private void scheduleStep1AfterCommit(UUID stapelId) {
+        if (TransactionSynchronizationManager.isActualTransactionActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    step1ProcessingService.processStep1Async(stapelId);
+                }
+            });
+            return;
+        }
+        step1ProcessingService.processStep1Async(stapelId);
     }
 }
