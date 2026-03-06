@@ -76,6 +76,23 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /api/v1/vorgaenge/{vorgangId}/results:
+    get:
+      summary: Liefert Ergebnisse eines vorhandenen Vorgangs
+      description: Enthält Stapel, Seiten und Extraktionsdaten zur Übergabe ans Frontend.
+      operationId: getVorgangResults
+      parameters:
+        - $ref: "#/components/parameters/VorgangId"
+      responses:
+        "200":
+          description: Ergebnisse gefunden.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VorgangResultsResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /api/v1/dokumentenstapel/{stapelId}/pages:
     get:
       summary: Liefert alle Seiten eines Dokumentenstapels
@@ -107,6 +124,23 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PageExtractResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/v1/pages/{pageId}/pdf:
+    get:
+      summary: Liefert das PDF einer einzelnen Seite
+      operationId: getPagePdf
+      parameters:
+        - $ref: "#/components/parameters/PageId"
+      responses:
+        "200":
+          description: Seiten-PDF gefunden.
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
         "404":
           $ref: "#/components/responses/NotFound"
 
@@ -234,12 +268,85 @@ components:
         - pagesFailed
         - stapel
 
+    VorgangPageResult:
+      type: object
+      properties:
+        pageId:
+          type: string
+          format: uuid
+        pdfUrl:
+          type: string
+          example: /api/v1/pages/046b6c7f-0b8a-43b9-b35d-6489e6daee91/pdf
+        pageNo:
+          type: integer
+        status:
+          type: string
+          example: EXTRACT_DONE
+        errorMessage:
+          type: string
+          nullable: true
+        text:
+          type: string
+        markdown:
+          type: string
+        doclingJson:
+          type: object
+          additionalProperties: true
+      required:
+        - pageId
+        - pdfUrl
+        - pageNo
+        - status
+        - text
+        - markdown
+        - doclingJson
+
+    VorgangStapelResult:
+      type: object
+      properties:
+        stapelId:
+          type: string
+          format: uuid
+        stapelName:
+          type: string
+        status:
+          type: string
+        pages:
+          type: array
+          items:
+            $ref: "#/components/schemas/VorgangPageResult"
+      required:
+        - stapelId
+        - stapelName
+        - status
+        - pages
+
+    VorgangResultsResponse:
+      type: object
+      properties:
+        vorgangId:
+          type: string
+          format: uuid
+        status:
+          type: string
+        stapel:
+          type: array
+          items:
+            $ref: "#/components/schemas/VorgangStapelResult"
+      required:
+        - vorgangId
+        - status
+        - stapel
+
     PageInfo:
       type: object
       properties:
         pageId:
           type: string
           format: uuid
+        pdfUrl:
+          type: string
+          example: /api/v1/pages/046b6c7f-0b8a-43b9-b35d-6489e6daee91/pdf
         pageNo:
           type: integer
         status:
@@ -250,6 +357,7 @@ components:
           nullable: true
       required:
         - pageId
+        - pdfUrl
         - pageNo
         - status
 

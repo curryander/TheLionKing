@@ -161,7 +161,7 @@ public class Step1ProcessingService {
         log.info("PDF split completed: stapelId={}, pageCount={}", stapel.getId(), splitPages.size());
         for (int i = 1; i <= splitPages.size(); i++) {
             byte[] pageBytes = splitPages.get(i - 1);
-            Path pagePath = storageService.savePagePdf(stapel.getId(), i, pageBytes);
+            Path pagePath = storageService.savePagePdf(stapel.getVorgang().getId(), stapel.getId(), i, pageBytes);
             Page page = new Page(i, pageBytes, stapel);
             page.setPdfPagePath(pagePath.toString());
             page.setStatus(SeiteStatus.CREATED.name());

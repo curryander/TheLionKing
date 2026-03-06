@@ -1,0 +1,69 @@
+﻿TheLionKing/
+|-- src/
+|   |-- main/
+|   |   |-- java/
+|   |   |   `-- de/
+|   |   |       `-- drv/
+|   |   |           `-- thelionking/
+|   |   |               |-- api/
+|   |   |               |   `-- impl/
+|   |   |               |       `-- ApiApiImpl.java
+|   |   |               |-- config/
+|   |   |               |   |-- AzureDocumentIntelligenceProperties.java
+|   |   |               |   |-- CorsConfig.java
+|   |   |               |   `-- RequestResponseLoggingFilter.java
+|   |   |               |-- data/
+|   |   |               |   |-- document/
+|   |   |               |   |-- dokumentenstapel/
+|   |   |               |   |-- dokumentseite/
+|   |   |               |   |-- jpa/
+|   |   |               |   |-- page/
+|   |   |               |   |-- ragchunk/
+|   |   |               |   |-- seitenextrakt/
+|   |   |               |   |-- versicherter/
+|   |   |               |   `-- vorgang/
+|   |   |               |-- service/
+|   |   |               |   |-- AzureDocumentIntelligenceClient.java
+|   |   |               |   `-- PdfService.java
+|   |   |               |-- workflow/
+|   |   |               |   |-- client/
+|   |   |               |   |   |-- AzureDocumentIntelligenceWorkflowClient.java
+|   |   |               |   |   |-- ExtractionClient.java
+|   |   |               |   |   |-- ExtractionResult.java
+|   |   |               |   |   |-- RestExtractionClient.java
+|   |   |               |   |   `-- StubExtractionClient.java
+|   |   |               |   |-- dto/
+|   |   |               |   |   |-- CreateVorgangResponse.java
+|   |   |               |   |   |-- CreateVorgangResult.java
+|   |   |               |   |   |-- PageExtractResponse.java
+|   |   |               |   |   |-- PageInfoDto.java
+|   |   |               |   |   |-- StapelProgressDto.java
+|   |   |               |   |   `-- VorgangStatusResponse.java
+|   |   |               |   |-- model/
+|   |   |               |   |   |-- DokumentenstapelStatus.java
+|   |   |               |   |   |-- SeiteStatus.java
+|   |   |               |   |   `-- VorgangStatus.java
+|   |   |               |   `-- service/
+|   |   |               |       |-- Step1ProcessingService.java
+|   |   |               |       |-- StorageService.java
+|   |   |               |       `-- VorgangWorkflowService.java
+|   |   |               |-- ServletInitializer.java
+|   |   |               `-- TheLionKingApplication.java
+|   |   `-- resources/
+|   `-- test/
+|       |-- java/
+|       |   `-- de/
+|       |       `-- drv/
+|       |           `-- thelionking/
+|       |               `-- TheLionKingApplicationTests.java
+|       `-- resources/
+|-- storage/
+|-- target/
+|-- .gitattributes
+|-- .gitignore
+|-- .openapi-generator-ignore
+|-- docker-compose.docling.yml
+|-- docker-compose.yml
+|-- mvnw
+|-- mvnw.cmd
+`-- pom.xml

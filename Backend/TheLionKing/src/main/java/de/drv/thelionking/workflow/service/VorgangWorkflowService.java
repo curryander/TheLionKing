@@ -97,7 +97,7 @@ public class VorgangWorkflowService {
                 stapel.getId(), vorgang.getId(), stapel.getOriginalFilename(), bytes.length);
 
         try {
-            String storageRef = storageService.saveOriginalPdf(stapel.getId(), bytes).toString();
+            String storageRef = storageService.saveOriginalPdf(vorgang.getId(), stapel.getId(), bytes).toString();
             stapel.setPdfStorageRef(storageRef);
             stapel = dokumentenstapelRepository.save(stapel);
             log.info("Dokumentenstapel storage reference persisted: stapelId={}, pdfStorageRef={}",

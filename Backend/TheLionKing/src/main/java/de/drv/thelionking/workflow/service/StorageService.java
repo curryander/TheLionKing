@@ -17,20 +17,28 @@ public class StorageService {
         this.storageRoot = Paths.get(storageRoot).toAbsolutePath().normalize();
     }
 
-    public Path saveOriginalPdf(UUID stapelId, byte[] pdfBytes) throws IOException {
-        Path dir = storageRoot.resolve(stapelId.toString());
+    public Path saveOriginalPdf(UUID vorgangId, UUID stapelId, byte[] pdfBytes) throws IOException {
+        Path dir = resolveStapelDir(vorgangId, stapelId);
         Files.createDirectories(dir);
         Path file = dir.resolve("original.pdf");
         Files.write(file, pdfBytes);
         return file;
     }
 
-    public Path savePagePdf(UUID stapelId, int pageNo, byte[] content) throws IOException {
-        Path dir = storageRoot.resolve(stapelId.toString());
+    public Path savePagePdf(UUID vorgangId, UUID stapelId, int pageNo, byte[] content) throws IOException {
+        Path dir = resolveStapelDir(vorgangId, stapelId);
         Files.createDirectories(dir);
         Path file = dir.resolve("page-" + pageNo + ".pdf");
         Files.write(file, content);
         return file;
+    }
+
+    private Path resolveStapelDir(UUID vorgangId, UUID stapelId) {
+        return storageRoot
+                .resolve("vorgaenge")
+                .resolve(vorgangId.toString())
+                .resolve("stapel")
+                .resolve(stapelId.toString());
     }
 }
 
