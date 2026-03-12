@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  title: IBMHackaton-TheLionKing
+  title: TheLionKing
   description: "API fuer Dokumentenstapel-Workflow (Step 1: Split + Extraktion)"
   version: 1.1.0
 servers:
