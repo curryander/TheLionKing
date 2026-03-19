@@ -2,4 +2,10 @@ jdbc:postgresql://ls-d8e9b573c6e9891b6a59ff0fbd4b4130d943691b.cz2s4wyo25zu.eu-ce
 dbmasteruser
 |>=f;k;tg91tHgmg)K!Gu|S]x9*q:X5:
 
+SPRING_DATASOURCE_PASSWORD = |>=f;k;tg91tHgmg)K!Gu|S]x9*q:X5:
+SPRING_DATASOURCE_URL = jdbc:postgresql://ls-d8e9b573c6e9891b6a59ff0fbd4b4130d943691b.cz2s4wyo25zu.eu-central-1.rds.amazonaws.com:5432/postgres
+SPRING_DATASOURCE_USERNAME = dbmasteruser
 
+spring.ai.openai.api-key=${OPENAI_API_KEY:}
+
+azure.document-intelligence.api-key=${AZURE_DOCUMENT_INTELLIGENCE_API_KEY:}
