@@ -1,4 +1,4 @@
-package de.drv.thelionking.data.vorgang;
+package de.drv.thelionking.data.entities.vorgang;
 
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;

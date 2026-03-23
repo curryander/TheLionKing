@@ -1,4 +1,4 @@
-package de.drv.thelionking.data.document;
+package de.drv.thelionking.data.entities.document;
 
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -9,7 +9,7 @@ import java.time.LocalDate;
 import java.util.Map;
 import java.util.UUID;
 import de.drv.thelionking.data.jpa.MapToJsonConverter;
-import de.drv.thelionking.data.dokumentenstapel.Dokumentenstapel;
+import de.drv.thelionking.data.entities.dokumentenstapel.DokumentenstapelEntity;
 
 @Entity
 @Table(name = "dokument")
@@ -88,7 +88,7 @@ public class Document {
     @Setter
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "dokumentenstapel_id", referencedColumnName = "id", nullable = false)
-    Dokumentenstapel dokumentenstapel;
+    DokumentenstapelEntity dokumentenstapelEntity;
 
     public enum Category {
         AUSWEIS,

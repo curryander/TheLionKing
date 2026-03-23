@@ -1,6 +1,6 @@
-package de.drv.thelionking.data.vorgang;
+package de.drv.thelionking.data.entities.vorgang;
 
-import de.drv.thelionking.data.dokumentenstapel.Dokumentenstapel;
+import de.drv.thelionking.data.entities.dokumentenstapel.DokumentenstapelEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -9,7 +9,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import de.drv.thelionking.data.versicherter.Versicherter;
+import de.drv.thelionking.data.entities.versicherter.Versicherter;
 
 @Entity
 @Table(name = "vorgang")
@@ -49,7 +49,7 @@ public class Vorgang {
     // Relationship: one Vorgang has many Dokumentenstapel
     @Getter
     @OneToMany(mappedBy = "vorgang", cascade = CascadeType.ALL, orphanRemoval = true)
-    List<Dokumentenstapel> dokumentenstapel = new ArrayList<>();
+    List<DokumentenstapelEntity> dokumentenstapelEntity = new ArrayList<>();
 
     @Getter
     @Setter
@@ -70,38 +70,38 @@ public class Vorgang {
     public Vorgang(byte[] multiPageDocument) {
         this.progress = 0;
         this.status = "UPLOADED";
-        Dokumentenstapel stapel = new Dokumentenstapel();
+        DokumentenstapelEntity stapel = new DokumentenstapelEntity();
         stapel.setVorgang(this);
         stapel.setStapelName("stapel-1");
         stapel.setStatus("UPLOADED");
         stapel.setUploadPdf(multiPageDocument);
-        this.dokumentenstapel.add(stapel);
+        this.dokumentenstapelEntity.add(stapel);
     }
 
     public Vorgang() {}
 
-    public Dokumentenstapel getOrCreatePrimaryStapel() {
-        if (dokumentenstapel == null) {
-            dokumentenstapel = new ArrayList<>();
+    public DokumentenstapelEntity getOrCreatePrimaryStapel() {
+        if (dokumentenstapelEntity == null) {
+            dokumentenstapelEntity = new ArrayList<>();
         }
-        if (dokumentenstapel.isEmpty()) {
-            Dokumentenstapel stapel = new Dokumentenstapel();
+        if (dokumentenstapelEntity.isEmpty()) {
+            DokumentenstapelEntity stapel = new DokumentenstapelEntity();
             stapel.setVorgang(this);
             stapel.setStapelName("stapel-1");
             stapel.setStatus("UPLOADED");
-            dokumentenstapel.add(stapel);
+            dokumentenstapelEntity.add(stapel);
             return stapel;
         }
-        return dokumentenstapel.get(0);
+        return dokumentenstapelEntity.get(0);
     }
 
     public byte[] getMultiPageDocument() {
-        Dokumentenstapel stapel = getOrCreatePrimaryStapel();
+        DokumentenstapelEntity stapel = getOrCreatePrimaryStapel();
         return stapel.getUploadPdf();
     }
 
     public void setMultiPageDocument(byte[] data) {
-        Dokumentenstapel stapel = getOrCreatePrimaryStapel();
+        DokumentenstapelEntity stapel = getOrCreatePrimaryStapel();
         stapel.setUploadPdf(data);
     }
 

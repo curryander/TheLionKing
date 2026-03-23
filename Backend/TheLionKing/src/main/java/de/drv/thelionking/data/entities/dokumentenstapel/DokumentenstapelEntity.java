@@ -1,8 +1,8 @@
-package de.drv.thelionking.data.dokumentenstapel;
+package de.drv.thelionking.data.entities.dokumentenstapel;
 
-import de.drv.thelionking.data.document.Document;
-import de.drv.thelionking.data.page.Page;
-import de.drv.thelionking.data.vorgang.Vorgang;
+import de.drv.thelionking.data.entities.document.Document;
+import de.drv.thelionking.data.entities.page.PageEntity;
+import de.drv.thelionking.data.entities.vorgang.Vorgang;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -14,7 +14,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "dokumentenstapel")
-public class Dokumentenstapel {
+public class DokumentenstapelEntity {
 
     @Id
     @Getter
@@ -69,14 +69,14 @@ public class Dokumentenstapel {
     byte[] uploadPdf;
 
     @Getter
-    @OneToMany(mappedBy = "dokumentenstapel", cascade = CascadeType.ALL, orphanRemoval = true)
-    List<Page> pages = new ArrayList<>();
+    @OneToMany(mappedBy = "dokumentenstapelEntity", cascade = CascadeType.ALL, orphanRemoval = true)
+    List<PageEntity> pageEntities = new ArrayList<>();
 
     @Getter
-    @OneToMany(mappedBy = "dokumentenstapel", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "dokumentenstapelEntity", cascade = CascadeType.ALL, orphanRemoval = true)
     List<Document> documents = new ArrayList<>();
 
-    public Dokumentenstapel() {
+    public DokumentenstapelEntity() {
     }
 
     @PrePersist

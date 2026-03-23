@@ -1,13 +1,13 @@
 package de.drv.thelionking.workflow.service;
 
-import de.drv.thelionking.data.dokumentenstapel.Dokumentenstapel;
-import de.drv.thelionking.data.dokumentenstapel.DokumentenstapelRepository;
-import de.drv.thelionking.data.page.Page;
-import de.drv.thelionking.data.page.PageRepository;
-import de.drv.thelionking.data.versicherter.Versicherter;
-import de.drv.thelionking.data.versicherter.VersicherterRepository;
-import de.drv.thelionking.data.vorgang.Vorgang;
-import de.drv.thelionking.data.vorgang.VorgangRepository;
+import de.drv.thelionking.data.entities.dokumentenstapel.DokumentenstapelEntity;
+import de.drv.thelionking.data.entities.dokumentenstapel.DokumentenstapelEntityRepository;
+import de.drv.thelionking.data.entities.page.PageEntity;
+import de.drv.thelionking.data.entities.page.PageRepository;
+import de.drv.thelionking.data.entities.versicherter.Versicherter;
+import de.drv.thelionking.data.entities.versicherter.VersicherterRepository;
+import de.drv.thelionking.data.entities.vorgang.Vorgang;
+import de.drv.thelionking.data.entities.vorgang.VorgangRepository;
 import de.drv.thelionking.workflow.dto.CreateVorgangResult;
 import de.drv.thelionking.workflow.dto.StapelProgressDto;
 import de.drv.thelionking.workflow.dto.VorgangStatusResponse;
@@ -35,7 +35,7 @@ public class VorgangWorkflowService {
 
     private final VorgangRepository vorgangRepository;
     private final VersicherterRepository versicherterRepository;
-    private final DokumentenstapelRepository dokumentenstapelRepository;
+    private final DokumentenstapelEntityRepository dokumentenstapelEntityRepository;
     private final PageRepository pageRepository;
     private final StorageService storageService;
     private final Step1ProcessingService step1ProcessingService;
@@ -43,13 +43,13 @@ public class VorgangWorkflowService {
     public VorgangWorkflowService(
             VorgangRepository vorgangRepository,
             VersicherterRepository versicherterRepository,
-            DokumentenstapelRepository dokumentenstapelRepository,
+            DokumentenstapelEntityRepository dokumentenstapelEntityRepository,
             PageRepository pageRepository,
             StorageService storageService,
             Step1ProcessingService step1ProcessingService) {
         this.vorgangRepository = vorgangRepository;
         this.versicherterRepository = versicherterRepository;
-        this.dokumentenstapelRepository = dokumentenstapelRepository;
+        this.dokumentenstapelEntityRepository = dokumentenstapelEntityRepository;
         this.pageRepository = pageRepository;
         this.storageService = storageService;
         this.step1ProcessingService = step1ProcessingService;
@@ -85,21 +85,21 @@ public class VorgangWorkflowService {
         log.info("Vorgang persisted with Versicherter: vorgangId={}, versicherterId={}, vsnr={}",
                 vorgang.getId(), versicherter.getId(), versicherter.getVsnr());
 
-        Dokumentenstapel stapel = new Dokumentenstapel();
+        DokumentenstapelEntity stapel = new DokumentenstapelEntity();
         stapel.setVorgang(vorgang);
         stapel.setStapelName((stapelName == null || stapelName.isBlank()) ? "Dokumentenstapel" : stapelName);
         stapel.setStatus(DokumentenstapelStatus.UPLOADED.name());
         stapel.setOriginalFilename(pdf.getOriginalFilename());
         stapel.setUploadFilename(pdf.getOriginalFilename());
         stapel.setUploadPdf(bytes);
-        stapel = dokumentenstapelRepository.save(stapel);
+        stapel = dokumentenstapelEntityRepository.save(stapel);
         log.info("Dokumentenstapel persisted: stapelId={}, vorgangId={}, originalFilename={}, bytes={}",
                 stapel.getId(), vorgang.getId(), stapel.getOriginalFilename(), bytes.length);
 
         try {
             String storageRef = storageService.saveOriginalPdf(vorgang.getId(), stapel.getId(), bytes).toString();
             stapel.setPdfStorageRef(storageRef);
-            stapel = dokumentenstapelRepository.save(stapel);
+            stapel = dokumentenstapelEntityRepository.save(stapel);
             log.info("Dokumentenstapel storage reference persisted: stapelId={}, pdfStorageRef={}",
                     stapel.getId(), stapel.getPdfStorageRef());
         } catch (IOException e) {
@@ -153,17 +153,17 @@ public class VorgangWorkflowService {
         Vorgang vorgang = vorgangRepository.findById(vorgangId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Vorgang not found"));
 
-        List<Dokumentenstapel> stapelList = new ArrayList<>(vorgang.getDokumentenstapel());
+        List<DokumentenstapelEntity> stapelList = new ArrayList<>(vorgang.getDokumentenstapelEntity());
 
         long totalAll = 0;
         long doneAll = 0;
         long failedAll = 0;
         List<StapelProgressDto> stapelDtos = new ArrayList<>();
 
-        for (Dokumentenstapel stapel : stapelList) {
-            long total = pageRepository.countByDokumentenstapel_Id(stapel.getId());
-            long done = pageRepository.countByDokumentenstapel_IdAndStatus(stapel.getId(), SeiteStatus.EXTRACT_DONE.name());
-            long failed = pageRepository.countByDokumentenstapel_IdAndStatus(stapel.getId(), SeiteStatus.FAILED.name());
+        for (DokumentenstapelEntity stapel : stapelList) {
+            long total = pageRepository.countByDokumentenstapelEntity_Id(stapel.getId());
+            long done = pageRepository.countByDokumentenstapelEntity_IdAndStatus(stapel.getId(), SeiteStatus.EXTRACT_DONE.name());
+            long failed = pageRepository.countByDokumentenstapelEntity_IdAndStatus(stapel.getId(), SeiteStatus.FAILED.name());
 
             StapelProgressDto dto = new StapelProgressDto();
             dto.setStapelId(stapel.getId());
@@ -190,7 +190,7 @@ public class VorgangWorkflowService {
 
     @Transactional
     public void triggerStep1(UUID stapelId) {
-        Dokumentenstapel stapel = dokumentenstapelRepository.findById(stapelId)
+        DokumentenstapelEntity stapel = dokumentenstapelEntityRepository.findById(stapelId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Dokumentenstapel not found"));
 
         String status = stapel.getStatus();
@@ -206,11 +206,11 @@ public class VorgangWorkflowService {
     }
 
     @Transactional(readOnly = true)
-    public List<Page> getPages(UUID stapelId) {
-        if (!dokumentenstapelRepository.existsById(stapelId)) {
+    public List<PageEntity> getPages(UUID stapelId) {
+        if (!dokumentenstapelEntityRepository.existsById(stapelId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Dokumentenstapel not found");
         }
-        return pageRepository.findAllByDokumentenstapel_IdOrderByPageNoAsc(stapelId);
+        return pageRepository.findAllByDokumentenstapelEntity_IdOrderByPageNoAsc(stapelId);
     }
 
     private void scheduleStep1AfterCommit(UUID stapelId) {
@@ -226,4 +226,3 @@ public class VorgangWorkflowService {
         step1ProcessingService.processStep1Async(stapelId);
     }
 }
-

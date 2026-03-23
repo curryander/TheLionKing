@@ -1,14 +1,14 @@
 package de.drv.thelionking.workflow.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import de.drv.thelionking.data.dokumentenstapel.Dokumentenstapel;
-import de.drv.thelionking.data.dokumentenstapel.DokumentenstapelRepository;
-import de.drv.thelionking.data.page.Page;
-import de.drv.thelionking.data.page.PageRepository;
-import de.drv.thelionking.data.seitenextrakt.SeitenExtrakt;
-import de.drv.thelionking.data.seitenextrakt.SeitenExtraktRepository;
-import de.drv.thelionking.data.vorgang.Vorgang;
-import de.drv.thelionking.data.vorgang.VorgangRepository;
+import de.drv.thelionking.data.entities.dokumentenstapel.DokumentenstapelEntity;
+import de.drv.thelionking.data.entities.dokumentenstapel.DokumentenstapelEntityRepository;
+import de.drv.thelionking.data.entities.page.PageEntity;
+import de.drv.thelionking.data.entities.page.PageRepository;
+import de.drv.thelionking.data.entities.seitenextrakt.SeitenExtrakt;
+import de.drv.thelionking.data.entities.seitenextrakt.SeitenExtraktRepository;
+import de.drv.thelionking.data.entities.vorgang.Vorgang;
+import de.drv.thelionking.data.entities.vorgang.VorgangRepository;
 import de.drv.thelionking.service.PdfService;
 import de.drv.thelionking.workflow.client.ExtractionClient;
 import de.drv.thelionking.workflow.client.ExtractionResult;
@@ -33,7 +33,7 @@ import java.util.UUID;
 public class Step1ProcessingService {
     private static final Logger log = LoggerFactory.getLogger(Step1ProcessingService.class);
 
-    private final DokumentenstapelRepository dokumentenstapelRepository;
+    private final DokumentenstapelEntityRepository dokumentenstapelEntityRepository;
     private final PageRepository pageRepository;
     private final SeitenExtraktRepository seitenExtraktRepository;
     private final VorgangRepository vorgangRepository;
@@ -43,7 +43,7 @@ public class Step1ProcessingService {
     private final ObjectMapper objectMapper;
 
     public Step1ProcessingService(
-            DokumentenstapelRepository dokumentenstapelRepository,
+            DokumentenstapelEntityRepository dokumentenstapelEntityRepository,
             PageRepository pageRepository,
             SeitenExtraktRepository seitenExtraktRepository,
             VorgangRepository vorgangRepository,
@@ -51,7 +51,7 @@ public class Step1ProcessingService {
             PdfService pdfService,
             ExtractionClient extractionClient,
             ObjectMapper objectMapper) {
-        this.dokumentenstapelRepository = dokumentenstapelRepository;
+        this.dokumentenstapelEntityRepository = dokumentenstapelEntityRepository;
         this.pageRepository = pageRepository;
         this.seitenExtraktRepository = seitenExtraktRepository;
         this.vorgangRepository = vorgangRepository;
@@ -69,7 +69,7 @@ public class Step1ProcessingService {
     }
 
     void processStep1(UUID stapelId) {
-        Dokumentenstapel stapel = dokumentenstapelRepository.findById(stapelId).orElse(null);
+        DokumentenstapelEntity stapel = dokumentenstapelEntityRepository.findById(stapelId).orElse(null);
         if (stapel == null) {
             return;
         }
@@ -88,47 +88,47 @@ public class Step1ProcessingService {
 
         try {
             stapel.setStatus(DokumentenstapelStatus.SPLITTING.name());
-            dokumentenstapelRepository.save(stapel);
+            dokumentenstapelEntityRepository.save(stapel);
 
-            List<Page> pages = createPagesBySplit(stapel);
+            List<PageEntity> pageEntities = createPagesBySplit(stapel);
 
-            stapel.setSeitenAnzahl(pages.size());
+            stapel.setSeitenAnzahl(pageEntities.size());
             stapel.setStatus(DokumentenstapelStatus.SPLIT_DONE.name());
-            dokumentenstapelRepository.save(stapel);
+            dokumentenstapelEntityRepository.save(stapel);
 
             stapel.setStatus(DokumentenstapelStatus.EXTRACTING.name());
-            dokumentenstapelRepository.save(stapel);
+            dokumentenstapelEntityRepository.save(stapel);
 
             int failed = 0;
-            for (Page page : pages) {
+            for (PageEntity pageEntity : pageEntities) {
                 try {
-                    Path pagePath = Path.of(page.getPdfPagePath());
+                    Path pagePath = Path.of(pageEntity.getPdfPagePath());
                     log.info("Starting extraction: stapelId={}, pageId={}, pageNo={}, provider={}",
-                            stapel.getId(), page.getId(), page.getPageNo(), extractionClient.getClass().getSimpleName());
+                            stapel.getId(), pageEntity.getId(), pageEntity.getPageNo(), extractionClient.getClass().getSimpleName());
                     ExtractionResult result = extractionClient.extract(pagePath);
                     String doclingJson = objectMapper.writeValueAsString(result.getDoclingJson());
 
-                    SeitenExtrakt extrakt = seitenExtraktRepository.findBySeite_Id(page.getId()).orElseGet(SeitenExtrakt::new);
-                    extrakt.setSeite(page);
+                    SeitenExtrakt extrakt = seitenExtraktRepository.findBySeite_Id(pageEntity.getId()).orElseGet(SeitenExtrakt::new);
+                    extrakt.setSeite(pageEntity);
                     extrakt.setMarkdown(result.getMarkdown());
                     extrakt.setDoclingJson(doclingJson);
                     extrakt.setExtractedAt(Instant.now());
                     seitenExtraktRepository.save(extrakt);
 
-                    page.setExtractedText(result.getMarkdown());
-                    page.setStatus(SeiteStatus.EXTRACT_DONE.name());
-                    page.setErrorMessage(null);
+                    pageEntity.setExtractedText(result.getMarkdown());
+                    pageEntity.setStatus(SeiteStatus.EXTRACT_DONE.name());
+                    pageEntity.setErrorMessage(null);
                     log.info("Extraction succeeded: stapelId={}, pageId={}, pageNo={}",
-                            stapel.getId(), page.getId(), page.getPageNo());
+                            stapel.getId(), pageEntity.getId(), pageEntity.getPageNo());
                 } catch (Exception ex) {
                     failed++;
-                    page.setExtractedText(null);
-                    page.setStatus(SeiteStatus.FAILED.name());
-                    page.setErrorMessage(ex.getMessage());
+                    pageEntity.setExtractedText(null);
+                    pageEntity.setStatus(SeiteStatus.FAILED.name());
+                    pageEntity.setErrorMessage(ex.getMessage());
                     log.error("Extraction failed: stapelId={}, pageId={}, pageNo={}, error={}",
-                            stapel.getId(), page.getId(), page.getPageNo(), ex.getMessage(), ex);
+                            stapel.getId(), pageEntity.getId(), pageEntity.getPageNo(), ex.getMessage(), ex);
                 }
-                pageRepository.save(page);
+                pageRepository.save(pageEntity);
             }
 
             if (failed == 0) {
@@ -138,40 +138,39 @@ public class Step1ProcessingService {
                 stapel.setStatus(DokumentenstapelStatus.PARTIAL_FAILED.name());
                 vorgang.setStatus(VorgangStatus.FAILED.name());
             }
-            dokumentenstapelRepository.save(stapel);
+            dokumentenstapelEntityRepository.save(stapel);
             vorgangRepository.save(vorgang);
         } catch (Exception ex) {
             stapel.setStatus(DokumentenstapelStatus.FAILED.name());
-            dokumentenstapelRepository.save(stapel);
+            dokumentenstapelEntityRepository.save(stapel);
             vorgang.setStatus(VorgangStatus.FAILED.name());
             vorgangRepository.save(vorgang);
         }
     }
 
-    private List<Page> createPagesBySplit(Dokumentenstapel stapel) throws IOException {
-        List<Page> existing = pageRepository.findAllByDokumentenstapel_IdOrderByPageNoAsc(stapel.getId());
+    private List<PageEntity> createPagesBySplit(DokumentenstapelEntity stapel) throws IOException {
+        List<PageEntity> existing = pageRepository.findAllByDokumentenstapelEntity_IdOrderByPageNoAsc(stapel.getId());
         if (!existing.isEmpty()) {
             log.info("Pages already present for stapelId={}, count={}", stapel.getId(), existing.size());
             return existing;
         }
 
-        List<Page> pages = new ArrayList<>();
+        List<PageEntity> pageEntities = new ArrayList<>();
         byte[] original = stapel.getUploadPdf() != null ? stapel.getUploadPdf() : new byte[0];
         List<byte[]> splitPages = pdfService.splitToPages(original);
         log.info("PDF split completed: stapelId={}, pageCount={}", stapel.getId(), splitPages.size());
         for (int i = 1; i <= splitPages.size(); i++) {
             byte[] pageBytes = splitPages.get(i - 1);
             Path pagePath = storageService.savePagePdf(stapel.getVorgang().getId(), stapel.getId(), i, pageBytes);
-            Page page = new Page(i, pageBytes, stapel);
-            page.setPdfPagePath(pagePath.toString());
-            page.setStatus(SeiteStatus.CREATED.name());
-            page.setErrorMessage(null);
-            page = pageRepository.save(page);
+            PageEntity pageEntity = new PageEntity(i, pageBytes, stapel);
+            pageEntity.setPdfPagePath(pagePath.toString());
+            pageEntity.setStatus(SeiteStatus.CREATED.name());
+            pageEntity.setErrorMessage(null);
+            pageEntity = pageRepository.save(pageEntity);
             log.info("Page persisted: stapelId={}, pageId={}, pageNo={}, bytes={}, pdfPagePath={}",
-                    stapel.getId(), page.getId(), page.getPageNo(), pageBytes.length, page.getPdfPagePath());
-            pages.add(page);
+                    stapel.getId(), pageEntity.getId(), pageEntity.getPageNo(), pageBytes.length, pageEntity.getPdfPagePath());
+            pageEntities.add(pageEntity);
         }
-        return pages;
+        return pageEntities;
     }
 }
-

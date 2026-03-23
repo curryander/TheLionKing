@@ -14,10 +14,10 @@
 |   |   |               |   `-- RequestResponseLoggingFilter.java
 |   |   |               |-- data/
 |   |   |               |   |-- document/
-|   |   |               |   |-- dokumentenstapel/
+|   |   |               |   |-- dokumentenstapelEntity/
 |   |   |               |   |-- dokumentseite/
 |   |   |               |   |-- jpa/
-|   |   |               |   |-- page/
+|   |   |               |   |-- pageEntity/
 |   |   |               |   |-- ragchunk/
 |   |   |               |   |-- seitenextrakt/
 |   |   |               |   |-- versicherter/

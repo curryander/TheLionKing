@@ -1,7 +1,7 @@
-package de.drv.thelionking.data.page;
+package de.drv.thelionking.data.entities.page;
 
-import de.drv.thelionking.data.dokumentenstapel.Dokumentenstapel;
-import de.drv.thelionking.data.seitenextrakt.SeitenExtrakt;
+import de.drv.thelionking.data.entities.dokumentenstapel.DokumentenstapelEntity;
+import de.drv.thelionking.data.entities.seitenextrakt.SeitenExtrakt;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -11,7 +11,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "seite")
-public class Page {
+public class PageEntity {
     @Id
     @Getter
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -57,7 +57,7 @@ public class Page {
     @Setter
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "dokumentenstapel_id", referencedColumnName = "id", nullable = false)
-    Dokumentenstapel dokumentenstapel;
+    DokumentenstapelEntity dokumentenstapelEntity;
 
     @Getter
     @Setter
@@ -74,12 +74,12 @@ public class Page {
     @Column(nullable = false)
     boolean usable = true;
 
-    public Page() {}
+    public PageEntity() {}
 
-    public Page(int pageNo, byte[] pdf, Dokumentenstapel dokumentenstapel) {
+    public PageEntity(int pageNo, byte[] pdf, DokumentenstapelEntity dokumentenstapelEntity) {
         this.pageNo = pageNo;
         this.pdf = pdf;
-        this.dokumentenstapel = dokumentenstapel;
+        this.dokumentenstapelEntity = dokumentenstapelEntity;
         this.usable = true;
         this.status = "CREATED";
     }

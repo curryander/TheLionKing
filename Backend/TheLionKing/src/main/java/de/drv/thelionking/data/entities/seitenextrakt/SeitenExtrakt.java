@@ -1,6 +1,6 @@
-package de.drv.thelionking.data.seitenextrakt;
+package de.drv.thelionking.data.entities.seitenextrakt;
 
-import de.drv.thelionking.data.page.Page;
+import de.drv.thelionking.data.entities.page.PageEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -21,7 +21,7 @@ public class SeitenExtrakt {
     @Setter
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "seite_id", nullable = false, unique = true)
-    Page seite;
+    PageEntity seite;
 
     @Getter
     @Setter

@@ -1,6 +1,6 @@
-package de.drv.thelionking.data.versicherter;
+package de.drv.thelionking.data.entities.versicherter;
 
-import de.drv.thelionking.data.vorgang.Vorgang;
+import de.drv.thelionking.data.entities.vorgang.Vorgang;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
