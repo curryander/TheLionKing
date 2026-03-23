@@ -6,6 +6,8 @@ import de.drv.thelionking.service.DokumentenstapelService;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -23,5 +25,9 @@ public class DokumentenstapelServiceImpl implements DokumentenstapelService {
                         .findAll()
                         .spliterator(),false)
                 .collect(Collectors.toList());
+    }
+
+    public Optional<DokumentenstapelEntity> findOneDokumentenstapel(UUID stapelId){
+        return dokumentenstapelEntityRepository.findById(stapelId);
     }
 }

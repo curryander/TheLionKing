@@ -8,7 +8,7 @@ import de.drv.thelionking.model.Dokumentenstapel;
 import de.drv.thelionking.model.Page;
 import de.drv.thelionking.service.DokumentenstapelService;
 import de.drv.thelionking.workflow.service.VorgangWorkflowService;
-import org.openapitools.jackson.nullable.JsonNullable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.NativeWebRequest;
@@ -65,6 +65,15 @@ public class DokumentenstapelController implements DokumentenstapelApi {
         }
         return ResponseEntity.ok(pages);
         }
+
+    @Override
+    public ResponseEntity<Dokumentenstapel> getDokumentenstapelUpload(UUID stapelId) {
+        Optional<DokumentenstapelEntity> foundDokumentenstapelEntity = dokumentenstapelService.findOneDokumentenstapel(stapelId);
+        return foundDokumentenstapelEntity.map(dokumentenstapelEntity -> {
+            Dokumentenstapel dokumentenstapel = dokumentenstapelMapper.mapTo(dokumentenstapelEntity);
+            return new ResponseEntity<>(dokumentenstapel, HttpStatus.OK);
+        }).orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    }
 
     @Override
     public ResponseEntity<Void> triggerDokumentenstapelStep1(UUID stapelId) {

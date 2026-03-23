@@ -121,6 +121,23 @@ paths:
                   $ref: "#/components/schemas/Page"
         "404":
           $ref: "#/components/responses/NotFound"
+  /dokumentenstapel/{stapelId}/upload:
+    get:
+      tags:
+        - Dokumentenstapel
+      summary: Liefert den Upload eines Dokumentenstapels
+      operationId: getDokumentenstapelUpload
+      parameters:
+        - $ref: "#/components/parameters/StapelId"
+      responses:
+        "200":
+          description: UploadPDF.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dokumentenstapel"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /pages/{pageId}/extract:
     get:
       tags:
@@ -190,6 +207,9 @@ components:
           type: string
         uploadFilename:
           type: string
+        uploadPdf:
+          type: string
+          format: byte
         originalFilename:
           type: string
         pdfStorageRef:
@@ -201,14 +221,6 @@ components:
         createdAt:
           type: string
           format: date-time
-        pages:
-          type: array
-          items:
-            $ref: "#/components/schemas/Page"
-        documents:
-          type: array
-          items:
-            $ref: "#/components/schemas/Document"
     Page:
       type: object
       properties:
