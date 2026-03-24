@@ -5,7 +5,8 @@ import de.drv.thelionking.data.entities.dokumentenstapel.DokumentenstapelEntity;
 import de.drv.thelionking.data.entities.page.PageEntity;
 import de.drv.thelionking.data.mapper.Mapper;
 import de.drv.thelionking.model.Dokumentenstapel;
-import de.drv.thelionking.model.Page;
+import de.drv.thelionking.model.DokumentenstapelNoContent;
+import de.drv.thelionking.model.PageNoContent;
 import de.drv.thelionking.service.DokumentenstapelService;
 import de.drv.thelionking.workflow.service.VorgangWorkflowService;
 import org.springframework.http.HttpStatus;
@@ -23,29 +24,34 @@ public class DokumentenstapelController implements DokumentenstapelApi {
 
     private final DokumentenstapelService dokumentenstapelService;
     private final Mapper<DokumentenstapelEntity, Dokumentenstapel> dokumentenstapelMapper;
-    private final Mapper<PageEntity, Page> pagesMapper;
+    private final Mapper<DokumentenstapelEntity, DokumentenstapelNoContent> dokumentenstapelNoContentMapper;
+    private final Mapper<PageEntity, PageNoContent> pagesMapper;
     private final VorgangWorkflowService vorgangWorkflowService;
 
 
     public DokumentenstapelController(
             DokumentenstapelService dokumentenstapelService,
             Mapper<DokumentenstapelEntity, Dokumentenstapel> dokumentenstapelMapper,
-            Mapper<PageEntity, Page> pagesMapper,
+            Mapper<DokumentenstapelEntity, DokumentenstapelNoContent> dokumentenstapelNoContentMapper,
+            Mapper<PageEntity, PageNoContent> pagesMapper,
             VorgangWorkflowService vorgangWorkflowService) {
         this.dokumentenstapelService = dokumentenstapelService;
         this.dokumentenstapelMapper = dokumentenstapelMapper;
+        this.dokumentenstapelNoContentMapper = dokumentenstapelNoContentMapper;
         this.pagesMapper = pagesMapper;
         this.vorgangWorkflowService = vorgangWorkflowService;
     }
 
+
+
     @Override
-    public ResponseEntity<List<Dokumentenstapel>> getDokumentenstapel() {
+    public ResponseEntity<List<DokumentenstapelNoContent>> getDokumentenstapel() {
         List<DokumentenstapelEntity> dokumentenstapelEntityList = dokumentenstapelService.findAll();
-        List<Dokumentenstapel> dokumentenstapelList = new ArrayList<>();
+        List<DokumentenstapelNoContent> dokumentenstapelList = new ArrayList<>();
 
         for (DokumentenstapelEntity entity : dokumentenstapelEntityList) {
-            Dokumentenstapel dto = dokumentenstapelMapper.mapTo(entity);
-            dokumentenstapelList.add(dto);
+            DokumentenstapelNoContent dokumentenstapelNoContent = dokumentenstapelNoContentMapper.mapTo(entity);
+            dokumentenstapelList.add(dokumentenstapelNoContent);
         }
         return ResponseEntity.ok(dokumentenstapelList);
     }
@@ -56,15 +62,15 @@ public class DokumentenstapelController implements DokumentenstapelApi {
     }
 
     @Override
-    public ResponseEntity<List<Page>> getDokumentenstapelPages(UUID stapelId) {
+    public ResponseEntity<List<PageNoContent>> getDokumentenstapelPages(UUID stapelId) {
         List<PageEntity> pageEntities = vorgangWorkflowService.getPages(stapelId);
-        List<Page> pages = new ArrayList<>();
+        List<PageNoContent> pages = new ArrayList<>();
         for (PageEntity pageEntity : pageEntities) {
-            Page page = pagesMapper.mapTo(pageEntity);
+            PageNoContent page = pagesMapper.mapTo(pageEntity);
             pages.add(page);
         }
         return ResponseEntity.ok(pages);
-        }
+    }
 
     @Override
     public ResponseEntity<Dokumentenstapel> getDokumentenstapelUpload(UUID stapelId) {
@@ -79,9 +85,5 @@ public class DokumentenstapelController implements DokumentenstapelApi {
     public ResponseEntity<Void> triggerDokumentenstapelStep1(UUID stapelId) {
         vorgangWorkflowService.triggerStep1(stapelId);
         return ResponseEntity.accepted().build();
-    }
-
-    private String buildPagePdfUrl(UUID pageId) {
-        return "/api/v1/pages/" + pageId + "/pdf";
     }
 }
