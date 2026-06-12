@@ -69,6 +69,12 @@ public class DokumentenstapelEntity {
     byte[] uploadPdf;
 
     @Getter
+    @Setter
+    @Lob
+    @Column(name = "complete_json_extract")
+    String completeJsonExtract;
+
+    @Getter
     @OneToMany(mappedBy = "dokumentenstapelEntity", cascade = CascadeType.ALL, orphanRemoval = true)
     List<PageEntity> pageEntities = new ArrayList<>();
 

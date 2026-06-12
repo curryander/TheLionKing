@@ -97,6 +97,10 @@ public class Document {
         ZEUGNIS,
         STEUERBESCHEID,
         KRANKENKASSENBESCHEINIGUNG,
+        RECHNUNG,
+        LEBENSLAUF,
+        ANSCHREIBEN,
+        BEWERBUNG,
         SONSTIGE
     }
 
