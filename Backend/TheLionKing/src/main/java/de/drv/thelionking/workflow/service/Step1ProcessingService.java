@@ -1,6 +1,9 @@
 package de.drv.thelionking.workflow.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import de.drv.thelionking.data.entities.dokumentenstapel.DokumentenstapelEntity;
 import de.drv.thelionking.data.entities.dokumentenstapel.DokumentenstapelEntityRepository;
 import de.drv.thelionking.data.entities.page.PageEntity;
@@ -97,16 +100,19 @@ public class Step1ProcessingService {
             dokumentenstapelEntityRepository.save(stapel);
 
             stapel.setStatus(DokumentenstapelStatus.EXTRACTING.name());
+            stapel.setCompleteJsonExtract(null);
             dokumentenstapelEntityRepository.save(stapel);
 
             int failed = 0;
+            ArrayNode completeJsonExtract = objectMapper.createArrayNode();
             for (PageEntity pageEntity : pageEntities) {
                 try {
                     Path pagePath = Path.of(pageEntity.getPdfPagePath());
                     log.info("Starting extraction: stapelId={}, pageId={}, pageNo={}, provider={}",
                             stapel.getId(), pageEntity.getId(), pageEntity.getPageNo(), extractionClient.getClass().getSimpleName());
                     ExtractionResult result = extractionClient.extract(pagePath);
-                    String doclingJson = objectMapper.writeValueAsString(result.getDoclingJson());
+                    JsonNode doclingJsonNode = result.getDoclingJson();
+                    String doclingJson = objectMapper.writeValueAsString(doclingJsonNode);
 
                     SeitenExtrakt extrakt = seitenExtraktRepository.findBySeite_Id(pageEntity.getId()).orElseGet(SeitenExtrakt::new);
                     extrakt.setSeite(pageEntity);
@@ -118,6 +124,7 @@ public class Step1ProcessingService {
                     pageEntity.setExtractedText(result.getMarkdown());
                     pageEntity.setStatus(SeiteStatus.EXTRACT_DONE.name());
                     pageEntity.setErrorMessage(null);
+                    completeJsonExtract.add(createCompleteJsonExtractPage(pageEntity, doclingJsonNode, null));
                     log.info("Extraction succeeded: stapelId={}, pageId={}, pageNo={}",
                             stapel.getId(), pageEntity.getId(), pageEntity.getPageNo());
                 } catch (Exception ex) {
@@ -125,11 +132,14 @@ public class Step1ProcessingService {
                     pageEntity.setExtractedText(null);
                     pageEntity.setStatus(SeiteStatus.FAILED.name());
                     pageEntity.setErrorMessage(ex.getMessage());
+                    completeJsonExtract.add(createCompleteJsonExtractPage(pageEntity, null, ex.getMessage()));
                     log.error("Extraction failed: stapelId={}, pageId={}, pageNo={}, error={}",
                             stapel.getId(), pageEntity.getId(), pageEntity.getPageNo(), ex.getMessage(), ex);
                 }
                 pageRepository.save(pageEntity);
             }
+
+            stapel.setCompleteJsonExtract(objectMapper.writeValueAsString(completeJsonExtract));
 
             if (failed == 0) {
                 stapel.setStatus(DokumentenstapelStatus.EXTRACT_DONE.name());
@@ -146,6 +156,23 @@ public class Step1ProcessingService {
             vorgang.setStatus(VorgangStatus.FAILED.name());
             vorgangRepository.save(vorgang);
         }
+    }
+
+    private ObjectNode createCompleteJsonExtractPage(PageEntity pageEntity, JsonNode doclingJsonNode, String errorMessage) {
+        ObjectNode pageExtract = objectMapper.createObjectNode();
+        pageExtract.put("pageId", pageEntity.getId().toString());
+        pageExtract.put("pageNo", pageEntity.getPageNo());
+        if (doclingJsonNode == null) {
+            pageExtract.putNull("doclingJson");
+        } else {
+            pageExtract.set("doclingJson", doclingJsonNode);
+        }
+        if (errorMessage == null || errorMessage.isBlank()) {
+            pageExtract.putNull("errorMessage");
+        } else {
+            pageExtract.put("errorMessage", errorMessage);
+        }
+        return pageExtract;
     }
 
     private List<PageEntity> createPagesBySplit(DokumentenstapelEntity stapel) throws IOException {

@@ -8,6 +8,7 @@ import de.drv.thelionking.data.entities.versicherter.Versicherter;
 import de.drv.thelionking.data.entities.versicherter.VersicherterRepository;
 import de.drv.thelionking.data.entities.vorgang.Vorgang;
 import de.drv.thelionking.data.entities.vorgang.VorgangRepository;
+import de.drv.thelionking.model.Dokumentenstapel;
 import de.drv.thelionking.workflow.dto.CreateVorgangResult;
 import de.drv.thelionking.workflow.dto.StapelProgressDto;
 import de.drv.thelionking.workflow.dto.VorgangStatusResponse;
@@ -39,6 +40,7 @@ public class VorgangWorkflowService {
     private final PageRepository pageRepository;
     private final StorageService storageService;
     private final Step1ProcessingService step1ProcessingService;
+    private final Step2ProcessingService step2ProcessingService;
 
     public VorgangWorkflowService(
             VorgangRepository vorgangRepository,
@@ -46,13 +48,15 @@ public class VorgangWorkflowService {
             DokumentenstapelEntityRepository dokumentenstapelEntityRepository,
             PageRepository pageRepository,
             StorageService storageService,
-            Step1ProcessingService step1ProcessingService) {
+            Step1ProcessingService step1ProcessingService,
+            Step2ProcessingService step2ProcessingService) {
         this.vorgangRepository = vorgangRepository;
         this.versicherterRepository = versicherterRepository;
         this.dokumentenstapelEntityRepository = dokumentenstapelEntityRepository;
         this.pageRepository = pageRepository;
         this.storageService = storageService;
         this.step1ProcessingService = step1ProcessingService;
+        this.step2ProcessingService = step2ProcessingService;
     }
 
     @Transactional
@@ -153,7 +157,7 @@ public class VorgangWorkflowService {
         Vorgang vorgang = vorgangRepository.findById(vorgangId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Vorgang not found"));
 
-        List<DokumentenstapelEntity> stapelList = new ArrayList<>(vorgang.getDokumentenstapelEntity());
+        List<DokumentenstapelEntity> stapelList = dokumentenstapelEntityRepository.findAllByVorgang_IdOrderByCreatedAtAsc(vorgangId);
 
         long totalAll = 0;
         long doneAll = 0;
@@ -225,4 +229,20 @@ public class VorgangWorkflowService {
         }
         step1ProcessingService.processStep1Async(stapelId);
     }
+
+    @Transactional
+    public void triggerStep2(UUID stapelId){
+        DokumentenstapelEntity stapel = dokumentenstapelEntityRepository.findById(stapelId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Dokumentenstapel not found"));
+
+        String status = stapel.getStatus();
+        boolean allowed = DokumentenstapelStatus.EXTRACT_DONE.name().equals(status);
+
+        if (!allowed) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Dokumentenstapel status does not allow step1 trigger");
+        }
+
+        step2ProcessingService.processStep2Async(stapel.getCompleteJsonExtract());
+    }
+
 }

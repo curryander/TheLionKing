@@ -1,5 +1,6 @@
 package de.drv.thelionking.controller;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.drv.thelionking.api.VorgaengeApi;
 import de.drv.thelionking.data.entities.dokumentenstapel.DokumentenstapelEntity;
@@ -85,6 +86,9 @@ public class VorgaengeController implements VorgaengeApi {
 
     @Override
     public ResponseEntity<VorgangWorkflowStatusResponse> getVorgangWorkflowStatus(UUID vorgangId) {
+        vorgangRepository.findById(vorgangId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Vorgang not found"));
+
         var data = vorgangWorkflowService.getVorgangStatus(vorgangId);
         VorgangWorkflowStatusResponse response = new VorgangWorkflowStatusResponse();
         response.setVorgangId(data.getVorgangId());
@@ -120,6 +124,7 @@ public class VorgaengeController implements VorgaengeApi {
             List<PageEntity> pageEntities = pageRepository.findAllByDokumentenstapelEntity_IdOrderByPageNoAsc(stapel.getId());
             List<SeitenExtrakt> extrakte = seitenExtraktRepository
                     .findAllBySeite_DokumentenstapelEntity_IdOrderBySeite_PageNoAsc(stapel.getId());
+            Map<UUID, Map<String, Object>> completeExtractByPageId = parseCompleteJsonExtractByPageId(stapel.getCompleteJsonExtract());
             Map<UUID, SeitenExtrakt> extraktByPageId = new HashMap<>();
             for (SeitenExtrakt extrakt : extrakte) {
                 if (extrakt.getSeite() != null && extrakt.getSeite().getId() != null) {
@@ -136,12 +141,23 @@ public class VorgaengeController implements VorgaengeApi {
                 pageResult.setPdfUrl(buildPagePdfUrl(pageEntity.getId()));
                 pageResult.setPageNo(pageEntity.getPageNo());
                 pageResult.setStatus(pageEntity.getStatus() == null ? "" : pageEntity.getStatus());
-                if (pageEntity.getErrorMessage() != null) {
-                    pageResult.setErrorMessage(JsonNullable.of(pageEntity.getErrorMessage()));
+                String errorMessage = pageEntity.getErrorMessage();
+                if (errorMessage == null || errorMessage.isBlank()) {
+                    errorMessage = extractErrorMessage(completeExtractByPageId.get(pageEntity.getId()));
+                }
+                if (errorMessage != null) {
+                    pageResult.setErrorMessage(JsonNullable.of(errorMessage));
                 }
                 pageResult.setText(pageEntity.getExtractedText() == null ? "" : pageEntity.getExtractedText());
                 pageResult.setMarkdown(extrakt == null || extrakt.getMarkdown() == null ? "" : extrakt.getMarkdown());
-                pageResult.setDoclingJson(parseDoclingJson(extrakt == null ? null : extrakt.getDoclingJson()));
+                Map<String, Object> doclingJson = parseDoclingJson(extrakt == null ? null : extrakt.getDoclingJson());
+                if (doclingJson.isEmpty()) {
+                    Map<String, Object> completeExtract = extractDoclingJson(completeExtractByPageId.get(pageEntity.getId()));
+                    if (!completeExtract.isEmpty()) {
+                        doclingJson = completeExtract;
+                    }
+                }
+                pageResult.setDoclingJson(doclingJson);
                 pageResults.add(pageResult);
             }
 
@@ -161,7 +177,7 @@ public class VorgaengeController implements VorgaengeApi {
     }
 
     private String buildPagePdfUrl(UUID pageId) {
-        return "/api/v1/pages/" + pageId + "/pdf";
+        return "/pages/" + pageId + "/pdf";
     }
 
     private Map<String, Object> parseDoclingJson(String raw) {
@@ -181,5 +197,57 @@ public class VorgaengeController implements VorgaengeApi {
             wrapped.put("raw", raw);
             return wrapped;
         }
+    }
+
+    private Map<UUID, Map<String, Object>> parseCompleteJsonExtractByPageId(String raw) {
+        Map<UUID, Map<String, Object>> result = new HashMap<>();
+        if (raw == null || raw.isBlank()) {
+            return result;
+        }
+        try {
+            JsonNode root = objectMapper.readTree(raw);
+            if (!root.isArray()) {
+                return result;
+            }
+            for (JsonNode pageNode : root) {
+                JsonNode pageIdNode = pageNode.get("pageId");
+                if (pageIdNode == null || pageIdNode.isNull() || pageIdNode.asText().isBlank()) {
+                    continue;
+                }
+                UUID pageId = UUID.fromString(pageIdNode.asText());
+                result.put(pageId, objectMapper.convertValue(pageNode, Map.class));
+            }
+            return result;
+        } catch (Exception e) {
+            return new HashMap<>();
+        }
+    }
+
+    private Map<String, Object> extractDoclingJson(Map<String, Object> completeExtractPage) {
+        if (completeExtractPage == null) {
+            return new HashMap<>();
+        }
+        Object doclingJson = completeExtractPage.get("doclingJson");
+        if (doclingJson instanceof Map<?, ?> mapValue) {
+            Map<String, Object> result = new HashMap<>();
+            for (Map.Entry<?, ?> entry : mapValue.entrySet()) {
+                if (entry.getKey() instanceof String key) {
+                    result.put(key, entry.getValue());
+                }
+            }
+            return result;
+        }
+        return new HashMap<>();
+    }
+
+    private String extractErrorMessage(Map<String, Object> completeExtractPage) {
+        if (completeExtractPage == null) {
+            return null;
+        }
+        Object errorMessage = completeExtractPage.get("errorMessage");
+        if (errorMessage instanceof String message && !message.isBlank()) {
+            return message;
+        }
+        return null;
     }
 }

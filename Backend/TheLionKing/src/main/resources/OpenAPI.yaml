@@ -138,6 +138,25 @@ paths:
                 $ref: "#/components/schemas/Dokumentenstapel"
         "404":
           $ref: "#/components/responses/NotFound"
+  /dokumentenstapel/{stapelId}/split-and-extract:
+    post:
+      tags:
+        - Dokumentenstapel
+      summary: Startet Step1 manuell fuer einen Dokumentenstapel
+      operationId: triggerDokumentenstapelStep1
+      parameters:
+        - $ref: "#/components/parameters/StapelId"
+      responses:
+        "202":
+          description: Verarbeitung wurde gestartet.
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Status erlaubt keinen Trigger.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /pages/{pageId}/extract:
     get:
       tags:
@@ -173,17 +192,21 @@ paths:
                 format: binary
         "404":
           $ref: "#/components/responses/NotFound"
-  /dokumentenstapel/{stapelId}/split-and-extract:
-    post:
+  /analysis/dokumentenstapel/{stapelId}:
+    get:
       tags:
-        - Dokumentenstapel
-      summary: Startet Step1 manuell fuer einen Dokumentenstapel
-      operationId: triggerDokumentenstapelStep1
+        - Analysis
+      summary: Liefert den vollständigen JSON-Extrakt eines Dokumentenstapels
+      operationId: triggerLlmAnalysis
       parameters:
         - $ref: "#/components/parameters/StapelId"
       responses:
-        "202":
-          description: Verarbeitung wurde gestartet.
+        "200":
+          description: JSON-Extrakt gefunden.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dokumentenstapel"
         "404":
           $ref: "#/components/responses/NotFound"
         "409":
@@ -218,9 +241,16 @@ components:
           type: integer
         status:
           type: string
+        completeJsonExtract:
+          type: string
+          nullable: true
         createdAt:
           type: string
           format: date-time
+        pageEntities:
+          type: array
+          items:
+            $ref: '#/components/schemas/Page'
     DokumentenstapelNoContent:
       type: object
       properties:
@@ -275,6 +305,10 @@ components:
           type: string
           format: uuid
           nullable: true
+        pageEntities:
+          type: array
+          items:
+            $ref: '#/components/schemas/SeitenExtrakt'
         createdAt:
           type: string
           format: date-time
@@ -358,12 +392,16 @@ components:
           type: string
           nullable: true
           enum:
-            - AUSWEIS
-            - GEBURTSURKUNDE
-            - STERBEURKUNDE
-            - ZEUGNIS
-            - STEUERBESCHEID
-            - KRANKENKASSENBESCHEINIGUNG
+            - AUSWEIS,
+            - GEBURTSURKUNDE,
+            - STERBEURKUNDE,
+            - ZEUGNIS,
+            - STEUERBESCHEID,
+            - KRANKENKASSENBESCHEINIGUNG,
+            - RECHNUNG,
+            - LEBENSLAUF,
+            - ANSCHREIBEN,
+            - BEWERBUNG,
             - SONSTIGE
         firstName:
           type: string
